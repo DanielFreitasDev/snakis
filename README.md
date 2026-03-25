@@ -104,7 +104,7 @@ Se não tiver o Node.js instalado, baixe em: https://nodejs.org/
 
 ```bash
 # Se estiver usando Git:
-git clone <url-do-repositorio>
+git clone https://github.com/DanielFreitasDev/snake-game.git
 cd snake-game
 
 # Ou extraia o arquivo zip e entre na pasta:
