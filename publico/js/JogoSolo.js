@@ -40,6 +40,7 @@ class JogoSolo {
     this.alturaGrid = CONSTANTES.TABULEIRO.ALTURA_SOLO;
 
     // Inicializar renderizador e sistema de particulas
+    // O Renderizador auto-ajusta o CSS ao viewport (mobile/desktop)
     this.renderizador = new Renderizador(this.canvas, this.larguraGrid, this.alturaGrid);
     this.particulas = new SistemaDeParticulas(this.renderizador.ctx);
 
@@ -83,6 +84,9 @@ class JogoSolo {
 
     // Configurar botoes
     this._configurarBotoes();
+
+    // Configurar suporte mobile (swipe global, resize)
+    this._configurarMobile();
 
     // Iniciar loop de renderizacao (sempre ativo para animacoes de fundo)
     this._iniciarRenderizacao();
@@ -142,6 +146,10 @@ class JogoSolo {
     // Mudar estado e iniciar loop logico
     this.estado = 'jogando';
 
+    // Mobile: fullscreen e bloqueio de gestos
+    Mobile.entrarFullscreen();
+    Mobile.bloquearGestos();
+
     // Som de inicio
     if (window.som) window.som.iniciarJogo();
 
@@ -179,6 +187,10 @@ class JogoSolo {
       clearInterval(this.intervaloJogo);
       this.intervaloJogo = null;
     }
+
+    // Mobile: liberar gestos ao fim do jogo
+    Mobile.liberarGestos();
+    Mobile.vibrarGameOver();
 
     // Verificar e salvar recorde
     const novoRecorde = this.pontuacao > this.recorde;
@@ -298,8 +310,9 @@ class JogoSolo {
       this.direcao = CONSTANTES.DIRECAO_OPOSTA[this.direcao];
       this.filaDeDirecoes = [];
 
-      // Som de escudo bloqueando
+      // Som e haptic de escudo bloqueando
       if (window.som) window.som.escudoBloqueou();
+      Mobile.vibrarEscudo();
       return;
     }
 
@@ -313,8 +326,9 @@ class JogoSolo {
       return;
     }
 
-    // Som de morte (perdeu vida)
+    // Som e haptic de morte (perdeu vida)
     if (window.som) window.som.morrer();
+    Mobile.vibrarMorrer();
 
     // Respawn: reposicionar cobra
     this._respawnar();
@@ -391,6 +405,13 @@ class JogoSolo {
             case 'vida': window.som.comerVida(); break;
             case 'escudo': window.som.comerEscudo(); break;
           }
+        }
+
+        // Haptic: sutil para normal, duplo para especiais
+        if (comida.tipo === 'normal') {
+          Mobile.vibrarComer();
+        } else {
+          Mobile.vibrarEspecial();
         }
 
         // Efeitos visuais: explosao de particulas e texto flutuante
@@ -816,6 +837,63 @@ class JogoSolo {
 
     document.getElementById('botao-reiniciar').addEventListener('click', () => {
       this.iniciar();
+    });
+
+    // Botao "Continuar" no overlay de pausa (mobile)
+    const botaoContinuar = document.getElementById('botao-continuar');
+    if (botaoContinuar) {
+      botaoContinuar.addEventListener('click', () => {
+        if (this.estado === 'pausado') this.alternarPausa();
+      });
+    }
+
+    // Botao de pausa mobile (canto da tela)
+    const botaoPausarMobile = document.getElementById('botao-pausar-mobile');
+    if (botaoPausarMobile) {
+      botaoPausarMobile.addEventListener('click', () => {
+        if (this.estado === 'jogando' || this.estado === 'pausado') {
+          this.alternarPausa();
+        }
+      });
+    }
+  }
+
+  /* =========================================================================
+   * SUPORTE MOBILE
+   * ======================================================================= */
+
+  /**
+   * Configura funcionalidades especificas para dispositivos mobile:
+   * - Swipe global na tela inteira como controle principal
+   * - Recalculo do canvas ao rotacionar/redimensionar o dispositivo
+   * - Double-tap no canvas para pausar (substitui ESC/P)
+   * @private
+   */
+  _configurarMobile() {
+    if (!Mobile.ehTouch()) return;
+
+    // Swipe na tela inteira (controle principal mobile)
+    Mobile.configurarSwipeGlobal(
+      (direcao) => this._adicionarDirecao(direcao),
+      () => this.estado === 'jogando'
+    );
+
+    // Reajustar canvas ao rotacionar/redimensionar o dispositivo
+    const reajustar = () => this.renderizador.ajustarAoViewport();
+    window.addEventListener('resize', reajustar);
+    window.addEventListener('orientationchange', () => setTimeout(reajustar, 200));
+
+    // Double-tap no canvas para pausar (sem ESC no mobile)
+    let ultimoToque = 0;
+    this.canvas.addEventListener('touchend', (e) => {
+      const agora = Date.now();
+      if (agora - ultimoToque < 300) {
+        e.preventDefault();
+        if (this.estado === 'jogando' || this.estado === 'pausado') {
+          this.alternarPausa();
+        }
+      }
+      ultimoToque = agora;
     });
   }
 

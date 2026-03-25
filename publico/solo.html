@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Snakis - Modo Solo</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,6 +57,7 @@
         <h2>🐍 Snakis Solo</h2>
         <p>Devore tudo no caminho e prove que você é a cobra mais voraz!</p>
         <p class="teclas-info">Use <strong>WASD</strong> ou <strong>Setas</strong> para mover</p>
+        <p class="dica-mobile">Deslize o dedo na tela para controlar a cobra</p>
         <button id="botao-iniciar" class="botao-acao botao-iniciar">Iniciar Jogo</button>
       </div>
     </div>
@@ -77,7 +78,9 @@
     <div id="tela-pausado" class="overlay-jogo" style="display:none;">
       <div class="overlay-conteudo">
         <h2>⏸ Pausado</h2>
-        <p>Pressione <strong>ESC</strong> ou <strong>P</strong> para continuar</p>
+        <p class="dica-pausar-desktop">Pressione <strong>ESC</strong> ou <strong>P</strong> para continuar</p>
+        <p class="dica-pausar-mobile">Toque duas vezes para continuar</p>
+        <button id="botao-continuar" class="botao-acao botao-iniciar dica-pausar-mobile">Continuar</button>
       </div>
     </div>
   </div>
@@ -92,6 +95,9 @@
     </div>
   </div>
 
+  <!-- Botao de pausa mobile -->
+  <button id="botao-pausar-mobile" class="botao-pausar-mobile" title="Pausar">⏸</button>
+
   <!-- Botao de som (mute/unmute) -->
   <button id="botao-som" class="botao-som" title="Ativar/Desativar som">
     🔊
@@ -99,6 +105,7 @@
 
   <!-- Scripts -->
   <script src="/js/constantes.js"></script>
+  <script src="/js/Mobile.js"></script>
   <script src="/js/SistemaDeParticulas.js"></script>
   <script src="/js/Renderizador.js"></script>
   <script src="/js/SistemaDeSom.js"></script>

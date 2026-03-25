@@ -111,6 +111,9 @@ class ClienteMultijogador {
     this._configurarControles();
     this._configurarBotoes();
 
+    // Configurar suporte mobile (swipe global)
+    this._configurarMobile();
+
     // Carregar lista de salas ao iniciar
     this._atualizarListaSalas();
 
@@ -164,6 +167,8 @@ class ClienteMultijogador {
     this.socket.on('partida-finalizada', (resultado) => {
       this._exibirResultado(resultado);
       if (window.som) window.som.partidaFinalizada();
+      Mobile.liberarGestos();
+      Mobile.vibrarGameOver();
     });
 
     /**
@@ -197,6 +202,11 @@ class ClienteMultijogador {
     const controlesMobile = document.getElementById('controles-mobile-multi');
     if (controlesMobile) {
       controlesMobile.style.display = nome === 'jogo' ? '' : 'none';
+    }
+
+    // Liberar gestos do navegador ao sair da tela de jogo
+    if (nome !== 'jogo') {
+      Mobile.liberarGestos();
     }
 
     // Parar renderizacao se saiu do jogo
@@ -413,7 +423,12 @@ class ClienteMultijogador {
   _iniciarTelaJogo() {
     this._mostrarTela('jogo');
 
+    // Mobile: fullscreen e bloqueio de gestos
+    Mobile.entrarFullscreen();
+    Mobile.bloquearGestos();
+
     // Inicializar renderizador para o grid multiplayer
+    // O Renderizador auto-ajusta o CSS ao viewport (mobile/desktop)
     const largura = CONSTANTES.TABULEIRO.LARGURA_MULTI;
     const altura = CONSTANTES.TABULEIRO.ALTURA_MULTI;
     this.renderizador = new Renderizador(this.canvasMulti, largura, altura);
@@ -573,11 +588,13 @@ class ClienteMultijogador {
             `💀 ${evento.eliminadorApelido} eliminou ${evento.eliminadoApelido}!`
           );
           if (window.som) window.som.eliminacao();
+          Mobile.vibrarEspecial();
           break;
 
         case 'morte':
           this._adicionarFeed(`☠️ ${evento.apelido} foi eliminado!`);
           if (window.som) window.som.morrer();
+          Mobile.vibrarMorrer();
           break;
 
         case 'comida_coletada':
@@ -591,13 +608,21 @@ class ClienteMultijogador {
             );
           }
           // Som da comida (apenas se o jogador local coletou)
-          if (window.som && evento.jogadorId === this.socket.id) {
-            switch (evento.tipoComida) {
-              case 'normal': window.som.comerNormal(); break;
-              case 'dourada': window.som.comerDourada(); break;
-              case 'velocidade': window.som.comerVelocidade(); break;
-              case 'vida': window.som.comerVida(); break;
-              case 'escudo': window.som.comerEscudo(); break;
+          if (evento.jogadorId === this.socket.id) {
+            if (window.som) {
+              switch (evento.tipoComida) {
+                case 'normal': window.som.comerNormal(); break;
+                case 'dourada': window.som.comerDourada(); break;
+                case 'velocidade': window.som.comerVelocidade(); break;
+                case 'vida': window.som.comerVida(); break;
+                case 'escudo': window.som.comerEscudo(); break;
+              }
+            }
+            // Haptic para comida coletada pelo jogador local
+            if (evento.tipoComida === 'normal') {
+              Mobile.vibrarComer();
+            } else {
+              Mobile.vibrarEspecial();
             }
           }
           break;
@@ -749,6 +774,35 @@ class ClienteMultijogador {
         this.socket.emit('mudar-direcao', dy > 0 ? 'baixo' : 'cima');
       }
     });
+  }
+
+  /* =========================================================================
+   * SUPORTE MOBILE
+   * ======================================================================= */
+
+  /**
+   * Configura funcionalidades especificas para dispositivos mobile:
+   * - Swipe global na tela inteira como controle principal
+   * - Recalculo do canvas ao rotacionar o dispositivo
+   * @private
+   */
+  _configurarMobile() {
+    if (!Mobile.ehTouch()) return;
+
+    // Swipe na tela inteira (controle principal mobile)
+    Mobile.configurarSwipeGlobal(
+      (direcao) => this.socket.emit('mudar-direcao', direcao),
+      () => this.telaAtiva === 'jogo'
+    );
+
+    // Reajustar canvas ao rotacionar/redimensionar o dispositivo
+    const reajustar = () => {
+      if (this.telaAtiva === 'jogo' && this.renderizador) {
+        this.renderizador.ajustarAoViewport();
+      }
+    };
+    window.addEventListener('resize', reajustar);
+    window.addEventListener('orientationchange', () => setTimeout(reajustar, 200));
   }
 
   /* =========================================================================

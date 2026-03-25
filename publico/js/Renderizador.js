@@ -20,12 +20,9 @@ class Renderizador {
    * @param {number} larguraGrid - Quantidade de colunas do grid.
    * @param {number} alturaGrid - Quantidade de linhas do grid.
    */
-  constructor(canvas, larguraGrid, alturaGrid) {
+  constructor(canvas, larguraGrid, alturaGrid, tamanhoCelula) {
     /** @type {HTMLCanvasElement} */
     this.canvas = canvas;
-
-    /** @type {CanvasRenderingContext2D} */
-    this.ctx = canvas.getContext('2d');
 
     /** @type {number} Colunas do grid */
     this.larguraGrid = larguraGrid;
@@ -33,18 +30,67 @@ class Renderizador {
     /** @type {number} Linhas do grid */
     this.alturaGrid = alturaGrid;
 
-    /** @type {number} Tamanho de cada celula em pixels */
-    this.tamanhoCelula = CONSTANTES.TABULEIRO.TAMANHO_CELULA;
+    /** @type {number} Tamanho de cada celula em pixels logicos */
+    this.tamanhoCelula = tamanhoCelula || CONSTANTES.TABULEIRO.TAMANHO_CELULA;
 
-    // Definir dimensoes do canvas baseado no grid
-    this.canvas.width = larguraGrid * this.tamanhoCelula;
-    this.canvas.height = alturaGrid * this.tamanhoCelula;
+    // Dimensoes logicas (usadas por todo o codigo de desenho)
+    /** @type {number} Largura logica do canvas em pixels */
+    this.largura = larguraGrid * this.tamanhoCelula;
+    /** @type {number} Altura logica do canvas em pixels */
+    this.altura = alturaGrid * this.tamanhoCelula;
+
+    // Escala DPI para renderizacao nitida em telas de alta densidade (Retina, mobile)
+    /** @type {number} Device pixel ratio */
+    this.dpr = window.devicePixelRatio || 1;
+
+    // Canvas interno em resolucao fisica (crisp), CSS em tamanho logico (layout)
+    canvas.width = this.largura * this.dpr;
+    canvas.height = this.altura * this.dpr;
+    canvas.style.width = this.largura + 'px';
+    canvas.style.height = this.altura + 'px';
+
+    /** @type {CanvasRenderingContext2D} */
+    this.ctx = canvas.getContext('2d');
+    this.ctx.scale(this.dpr, this.dpr);
 
     /** @type {number} Tick para animacoes baseadas em tempo */
     this.tickAnimacao = 0;
 
     /** @type {number} Angulo da coroa (rotacao continua) */
     this.anguloCoroa = 0;
+
+    // Ajustar exibicao ao viewport (essencial para mobile)
+    this.ajustarAoViewport();
+  }
+
+  /**
+   * Ajusta o tamanho de EXIBICAO do canvas para caber no viewport.
+   * A resolucao interna (qualidade de renderizacao) nao muda — apenas
+   * o tamanho CSS eh escalado proporcionalmente para que o canvas
+   * nunca ultrapasse a area visivel da tela.
+   *
+   * Funciona em qualquer dispositivo: mobile, tablet ou desktop pequeno.
+   */
+  ajustarAoViewport() {
+    const ehMobile = typeof Mobile !== 'undefined' && Mobile.ehTouch();
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const vw = window.innerWidth;
+
+    // Margens: espaco para HUD (topo) e controles (base)
+    const margemTopo = ehMobile ? 52 : 80;
+    const margemBaixo = ehMobile ? 200 : 20;
+    const margemLateral = ehMobile ? 6 : 20;
+
+    const maxW = vw - margemLateral * 2;
+    const maxH = vh - margemTopo - margemBaixo;
+
+    // Escala proporcional — so reduz, nunca amplia
+    const escalaW = maxW / this.largura;
+    const escalaH = maxH / this.altura;
+    const escala = Math.min(escalaW, escalaH, 1);
+
+    this.canvas.style.width = Math.floor(this.largura * escala) + 'px';
+    this.canvas.style.height = Math.floor(this.altura * escala) + 'px';
   }
 
   /* =========================================================================
@@ -58,8 +104,8 @@ class Renderizador {
    */
   desenharFundo() {
     const ctx = this.ctx;
-    const w = this.canvas.width;
-    const h = this.canvas.height;
+    const w = this.largura;
+    const h = this.altura;
 
     // Fundo com gradiente radial
     const gradiente = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.7);
@@ -464,8 +510,8 @@ class Renderizador {
     const ctx = this.ctx;
     const tam = this.tamanhoCelula;
     const b = bordaArena * tam;
-    const w = this.canvas.width;
-    const h = this.canvas.height;
+    const w = this.largura;
+    const h = this.altura;
 
     // Clip para a zona de perigo (borda ao redor da area jogavel)
     ctx.save();
@@ -507,8 +553,8 @@ class Renderizador {
    */
   desenharAvisoEncolhimento() {
     const ctx = this.ctx;
-    const w = this.canvas.width;
-    const h = this.canvas.height;
+    const w = this.largura;
+    const h = this.altura;
 
     // Overlay escuro
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';

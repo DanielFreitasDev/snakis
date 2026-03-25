@@ -1442,20 +1442,274 @@ button {
    8. RESPONSIVIDADE
    ======================================================================= */
 
-/* Detectar dispositivo touch para exibir controles mobile */
+/* --- 8a. Dispositivos touch (celular/tablet) --- */
+
 @media (hover: none) and (pointer: coarse) {
+  /* Exibir controles mobile */
   .controles-mobile {
     display: flex;
   }
 
+  /* Espaco para o d-pad na parte inferior */
   .container-jogo {
-    padding-bottom: 160px;
+    padding-bottom: 200px;
+    min-height: auto;
   }
 
+  /* Esconder rodape desktop */
   .rodape-menu {
     display: none;
   }
+
+  /* Canvas ocupa toda a largura disponivel */
+  .canvas-jogo {
+    max-width: calc(100vw - 12px);
+    display: block;
+  }
+
+  /* Hint de swipe para mobile */
+  .teclas-info {
+    display: none;
+  }
+  .dica-mobile {
+    display: block;
+  }
+
+  /* HUD compacto no mobile */
+  .hud-solo,
+  .hud-multi {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .hud-valor {
+    font-size: 1rem;
+  }
+
+  .hud-label {
+    font-size: 0.6rem;
+  }
+
+  .hud-item {
+    min-width: auto;
+    gap: 1px;
+  }
+
+  .hud-timer {
+    width: auto;
+  }
+
+  .hud-vidas {
+    font-size: 1rem;
+    letter-spacing: 1px;
+  }
+
+  /* Barra de efeitos menor */
+  .barra-efeitos {
+    top: 50px;
+  }
+
+  .efeito-ativo {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+
+  /* Botao voltar menor no mobile */
+  .botao-voltar {
+    top: auto;
+    bottom: 8px;
+    left: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    z-index: 200;
+  }
+
+  /* Placar lateral compacto */
+  .placar-lateral {
+    width: 110px;
+    right: 2px;
+    top: 52px;
+    font-size: 0.65rem;
+    padding: 6px;
+    gap: 3px;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  /* Esconder feed de eventos no mobile (espaco limitado) */
+  .feed-eventos {
+    display: none;
+  }
+
+  /* Overlay pausado: dica mobile */
+  .dica-pausar-desktop {
+    display: none;
+  }
+  .dica-pausar-mobile {
+    display: block;
+  }
+
+  /* Botao de som reposicionado */
+  .botao-som {
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    z-index: 200;
+  }
+
+  /* D-pad maior e mais acessivel */
+  .controles-mobile {
+    bottom: 16px;
+    gap: 3px;
+  }
+
+  .controles-meio {
+    gap: 3px;
+  }
+
+  .botao-direcao {
+    width: 68px;
+    height: 68px;
+    font-size: 1.6rem;
+    border-radius: 12px;
+    background: rgba(15, 15, 40, 0.85);
+    border: 1px solid rgba(0, 255, 136, 0.15);
+  }
+
+  .botao-direcao:active {
+    background: rgba(0, 255, 136, 0.2);
+    border-color: rgba(0, 255, 136, 0.4);
+    transform: scale(0.92);
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.2);
+  }
+
+  /* Lobby mobile-friendly */
+  .container-lobby {
+    padding: 16px 12px 24px;
+    max-width: 100%;
+  }
+
+  .lobby-header {
+    padding-top: 8px;
+  }
+
+  .lobby-titulo {
+    font-size: 1.4rem;
+  }
+
+  .lobby-subtitulo {
+    font-size: 0.85rem;
+  }
+
+  .lobby-secao {
+    margin-bottom: 12px;
+  }
+
+  .input-texto {
+    padding: 12px 14px;
+    font-size: 1rem;
+  }
+
+  .botao-acao {
+    padding: 14px 24px;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  .botao-voltar-multi {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin-bottom: 8px;
+  }
+
+  /* Sala de espera mobile */
+  .container-sala {
+    padding: 16px 12px;
+    max-width: 100%;
+  }
+
+  .sala-config .config-opcoes {
+    flex-wrap: wrap;
+  }
+
+  .botao-opcao {
+    flex: 1;
+    min-width: 60px;
+  }
+
+  /* Resultado mobile */
+  .container-resultado {
+    padding: 20px 12px;
+    max-width: 100%;
+  }
+
+  .resultado-titulo {
+    font-size: 1.3rem;
+  }
+
+  .ranking-item {
+    padding: 10px 8px;
+  }
+
+  /* Overlay conteudo mobile */
+  .overlay-conteudo {
+    padding: 24px 16px;
+    max-width: 90vw;
+  }
+
+  .overlay-conteudo h2 {
+    font-size: 1.5rem;
+  }
+
+  /* Botao de pause mobile (visivel no canto) */
+  .botao-pausar-mobile {
+    display: flex;
+  }
+
+  /* Safe area para notch/barra inferior do iOS */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 }
+
+/* Dicas mobile/desktop (oculto por padrao) */
+.dica-mobile {
+  display: none;
+  color: var(--cor-texto-secundario);
+  font-size: 0.9rem;
+}
+.dica-pausar-mobile {
+  display: none;
+}
+
+/* Botao pause mobile (oculto por padrao no desktop) */
+.botao-pausar-mobile {
+  display: none;
+  position: fixed;
+  top: 6px;
+  right: 54px;
+  z-index: 100;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--vidro-fundo);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: var(--vidro-blur);
+  color: var(--cor-texto);
+  font-size: 1rem;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- 8b. Tablets e desktops menores --- */
 
 @media (max-width: 768px) {
   .titulo-principal {
@@ -1489,12 +1743,14 @@ button {
   .container-jogo {
     padding-top: 60px;
   }
-
 }
+
+/* --- 8c. Telas muito pequenas --- */
 
 @media (max-width: 480px) {
   .container-menu {
-    padding: 24px 16px 40px;
+    padding: 24px 12px 40px;
+    gap: 20px;
   }
 
   .titulo-principal {
@@ -1502,16 +1758,82 @@ button {
   }
 
   .botao-menu {
-    padding: 16px;
+    padding: 14px 12px;
+  }
+
+  .botao-icone {
+    font-size: 1.5rem;
+  }
+
+  .botao-titulo {
+    font-size: 0.95rem;
+  }
+
+  .botao-descricao {
+    font-size: 0.75rem;
   }
 
   .hud-label {
     display: none;
   }
 
-  .placar-lateral {
-    width: 120px;
-    font-size: 0.7rem;
+  .hud-centro {
+    gap: 8px;
   }
 
+  .placar-lateral {
+    width: 100px;
+    font-size: 0.65rem;
+  }
+
+  .painel-recordes,
+  .painel-legenda {
+    width: 100%;
+  }
+
+  .legenda-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* D-pad um pouco menor em telas muito pequenas */
+  .botao-direcao {
+    width: 60px;
+    height: 60px;
+    font-size: 1.4rem;
+  }
+}
+
+/* --- 8d. Landscape mobile (celular deitado) --- */
+
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  .container-jogo {
+    padding-top: 44px;
+    padding-bottom: 10px;
+  }
+
+  .hud-solo,
+  .hud-multi {
+    padding: 4px 10px;
+  }
+
+  .hud-valor {
+    font-size: 0.9rem;
+  }
+
+  .barra-efeitos {
+    top: 38px;
+  }
+
+  /* D-pad no canto inferior direito em landscape */
+  .controles-mobile {
+    bottom: 8px;
+    left: auto;
+    right: 16px;
+    transform: none;
+    scale: 0.8;
+  }
+
+  .botao-pausar-mobile {
+    top: 4px;
+  }
 }
