@@ -697,6 +697,18 @@ button {
   font-size: 1.8rem;
 }
 
+.gameover-tempo {
+  font-size: 1.1rem;
+  color: var(--cor-texto-destaque) !important;
+  margin-bottom: 8px !important;
+}
+
+.gameover-tempo strong {
+  font-family: var(--fonte-titulo);
+  color: var(--cor-primaria);
+  font-size: 1.4rem;
+}
+
 .novo-recorde {
   font-size: 1.1rem;
   color: var(--cor-alerta) !important;
