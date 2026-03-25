@@ -1152,6 +1152,8 @@ class SalaDeJogo {
         efeitos: {
           velocidade: jogador.efeitos.velocidade.ativo,
           escudo: jogador.efeitos.escudo.ativo,
+          velocidadeTempo: jogador.efeitos.velocidade.tempoRestante,
+          escudoTempo: jogador.efeitos.escudo.tempoRestante,
         },
         ehRei: jogador.id === idRei,
         eliminacoes: jogador.eliminacoes,

@@ -521,13 +521,15 @@ class ClienteMultijogador {
       for (let i = 0; i < eu.vidas; i++) vidasHtml += '❤️';
       this.elMultiVidas.textContent = vidasHtml || (eu.vivo ? '' : '💀');
 
-      // Barra de efeitos
+      // Barra de efeitos com tempo restante
       let efeitosHtml = '';
       if (eu.efeitos.velocidade) {
-        efeitosHtml += '<div class="efeito-ativo efeito-velocidade">⚡ Velocidade</div>';
+        const segs = Math.ceil(eu.efeitos.velocidadeTempo / 1000);
+        efeitosHtml += `<div class="efeito-ativo efeito-velocidade">⚡ Velocidade ${segs}s</div>`;
       }
       if (eu.efeitos.escudo) {
-        efeitosHtml += '<div class="efeito-ativo efeito-escudo">🛡️ Escudo</div>';
+        const segs = Math.ceil(eu.efeitos.escudoTempo / 1000);
+        efeitosHtml += `<div class="efeito-ativo efeito-escudo">🛡️ Escudo ${segs}s</div>`;
       }
       this.elMultiBarraEfeitos.innerHTML = efeitosHtml;
     }
