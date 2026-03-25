@@ -186,11 +186,15 @@ class BotIA {
         else pontuacaoSeguranca += saidasSeguras * 2;
       }
 
+      // Bonus de inercia: preferir manter a direcao atual para evitar giros em circulo
+      const inercia = (direcao === bot.direcao) ? 8 : 0;
+
       // Pontuacao final ponderada pelos pesos da dificuldade
       const pontuacao =
         pontuacaoComida * cfg.pesoComida +
         pontuacaoAtaque * cfg.pesoAtaque +
-        pontuacaoSeguranca * cfg.pesoSeguranca;
+        pontuacaoSeguranca * cfg.pesoSeguranca +
+        inercia;
 
       return { direcao, seguro: true, pontuacao };
     });
