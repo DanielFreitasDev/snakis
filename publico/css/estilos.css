@@ -558,6 +558,7 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  min-width: 90px;
 }
 
 .hud-label {
@@ -572,11 +573,18 @@ button {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--cor-texto-destaque);
+  font-variant-numeric: tabular-nums;
 }
 
 .hud-vidas {
   font-size: 1.2rem;
   letter-spacing: 2px;
+}
+
+.hud-timer {
+  display: inline-block;
+  width: 7.5em;
+  text-align: center;
 }
 
 .hud-tempo {

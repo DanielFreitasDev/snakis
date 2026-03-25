@@ -32,6 +32,8 @@ class JogoSolo {
     this.elTelaPausado = document.getElementById('tela-pausado');
     this.elPontuacaoFinal = document.getElementById('pontuacao-final');
     this.elNovoRecorde = document.getElementById('novo-recorde');
+    this.elTempoJogo = document.getElementById('tempo-jogo');
+    this.elTempoFinal = document.getElementById('tempo-final');
 
     // Configuracoes do grid
     this.larguraGrid = CONSTANTES.TABULEIRO.LARGURA_SOLO;
@@ -53,6 +55,10 @@ class JogoSolo {
     this.crescimento = 0;
     this.invulneravel = false;
     this.tempoInvulneravel = 0;
+
+    // Timer de tempo jogado
+    this.tempoJogado = 0; // milissegundos totais jogando
+    this.ultimoTimestamp = 0;
 
     // Efeitos ativos
     this.efeitos = {
@@ -105,6 +111,8 @@ class JogoSolo {
       velocidade: { ativo: false, tempoRestante: 0 },
       escudo: { ativo: false, tempoRestante: 0 },
     };
+    this.tempoJogado = 0;
+    this.ultimoTimestamp = Date.now();
 
     // Posicionar cobra no centro do mapa
     const centroX = Math.floor(this.larguraGrid / 2);
@@ -150,6 +158,7 @@ class JogoSolo {
       this.elTelaPausado.style.display = 'flex';
     } else if (this.estado === 'pausado') {
       this.estado = 'jogando';
+      this.ultimoTimestamp = Date.now();
       this.elTelaPausado.style.display = 'none';
       const msPerTick = 1000 / CONSTANTES.SOLO.TICKS_POR_SEGUNDO;
       this.intervaloJogo = setInterval(() => this._tick(), msPerTick);
@@ -178,6 +187,7 @@ class JogoSolo {
 
     // Exibir tela de game over
     this.elPontuacaoFinal.textContent = this.pontuacao.toLocaleString('pt-BR');
+    this.elTempoFinal.textContent = this._formatarTempo(this.tempoJogado);
     this.elNovoRecorde.style.display = novoRecorde ? 'block' : 'none';
     this.elTelaGameover.style.display = 'flex';
 
@@ -585,6 +595,14 @@ class JogoSolo {
     this.particulas.atualizar();
     this.particulas.renderizar();
 
+    // Atualizar timer
+    if (this.estado === 'jogando') {
+      const agora = Date.now();
+      this.tempoJogado += agora - this.ultimoTimestamp;
+      this.ultimoTimestamp = agora;
+      this.elTempoJogo.textContent = this._formatarTempo(this.tempoJogado);
+    }
+
     // Atualizar barra de efeitos no HUD
     this._atualizarBarraEfeitos();
   }
@@ -606,6 +624,20 @@ class JogoSolo {
       vidasHtml += '❤️';
     }
     this.elVidas.textContent = vidasHtml || '💀';
+  }
+
+  /**
+   * Formata milissegundos em string HH:MM:SS.
+   * @param {number} ms - Tempo em milissegundos.
+   * @returns {string} Tempo formatado.
+   * @private
+   */
+  _formatarTempo(ms) {
+    const totalSegundos = Math.floor(ms / 1000);
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
   }
 
   /**
