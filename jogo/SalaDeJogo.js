@@ -73,6 +73,26 @@ class SalaDeJogo {
 
     /** @type {Array<object>} Fila de eventos para enviar aos clientes */
     this.eventosRecentes = [];
+
+    /* --- Encolhimento da arena --- */
+
+    /** @type {number} Borda atual da arena (celulas de margem em cada lado) */
+    this.bordaArena = 0;
+
+    /** @type {number} Borda final apos todos os encolhimentos */
+    this.bordaFinal = 5;
+
+    /** @type {number} Total de encolhimentos para a duracao configurada */
+    this.totalEncolhimentos = 0;
+
+    /** @type {number} Encolhimentos ja realizados */
+    this.encolhimentosFeitos = 0;
+
+    /** @type {number} Ticks restantes de pausa durante encolhimento */
+    this.pausaEncolhimento = 0;
+
+    /** @type {boolean} Se a arena esta atualmente encolhendo */
+    this.encolhendo = false;
   }
 
   /* =========================================================================
@@ -278,6 +298,14 @@ class SalaDeJogo {
     this.tempoRestante = this.tempoPartida;
     this.eventosRecentes = [];
 
+    // Calcular encolhimentos de arena baseado no tempo
+    const minutos = Math.floor(this.tempoPartida / 60);
+    this.totalEncolhimentos = Math.max(0, minutos - 1);
+    this.bordaArena = 0;
+    this.encolhimentosFeitos = 0;
+    this.pausaEncolhimento = 0;
+    this.encolhendo = false;
+
     // Distribuir jogadores em posicoes espalhadas pelo mapa
     const posicoes = this._calcularPosicoesIniciais();
     let indice = 0;
@@ -381,6 +409,16 @@ class SalaDeJogo {
     this.tickAtual++;
     this.eventosRecentes = [];
 
+    // 0. Se pausado para encolhimento da arena, apenas decrementar
+    if (this.pausaEncolhimento > 0) {
+      this.pausaEncolhimento--;
+      if (this.pausaEncolhimento === 0) {
+        this._aplicarEncolhimento();
+      }
+      this.io.to(this.codigo).emit('estado-jogo', this._obterEstadoJogo());
+      return;
+    }
+
     // 1. Atualizar temporizadores de efeitos e invulnerabilidade
     this._atualizarTemporizadores();
 
@@ -408,6 +446,17 @@ class SalaDeJogo {
     // 8. Atualizar tempo restante (1 segundo = TICKS_POR_SEGUNDO ticks)
     if (this.tickAtual % CONSTANTES.MULTI.TICKS_POR_SEGUNDO === 0) {
       this.tempoRestante--;
+
+      // Verificar se eh hora de encolher a arena
+      if (this.tempoRestante > 0 && this.tempoRestante % 60 === 0 &&
+          this.tempoRestante < this.tempoPartida &&
+          this.totalEncolhimentos > 0 &&
+          this.encolhimentosFeitos < this.totalEncolhimentos) {
+        this._iniciarEncolhimento();
+        this.io.to(this.codigo).emit('estado-jogo', this._obterEstadoJogo());
+        return;
+      }
+
       if (this.tempoRestante <= 0) {
         this.finalizarJogo();
         return;
@@ -572,8 +621,8 @@ class SalaDeJogo {
 
       const cabeca = jogador.cobra[0];
 
-      if (cabeca.x < 0 || cabeca.x >= this.largura ||
-          cabeca.y < 0 || cabeca.y >= this.altura) {
+      if (cabeca.x < this.bordaArena || cabeca.x >= this.largura - this.bordaArena ||
+          cabeca.y < this.bordaArena || cabeca.y >= this.altura - this.bordaArena) {
         this._processarMorte(jogador, 'parede');
       }
     }
@@ -890,8 +939,8 @@ class SalaDeJogo {
     const maxTentativas = 100;
 
     for (let tentativa = 0; tentativa < maxTentativas; tentativa++) {
-      const x = Math.floor(Math.random() * this.largura);
-      const y = Math.floor(Math.random() * this.altura);
+      const x = this.bordaArena + Math.floor(Math.random() * (this.largura - this.bordaArena * 2));
+      const y = this.bordaArena + Math.floor(Math.random() * (this.altura - this.bordaArena * 2));
 
       if (this._posicaoOcupada(x, y)) continue;
 
@@ -907,12 +956,15 @@ class SalaDeJogo {
    * @private
    */
   _encontrarPosicaoSegura() {
-    const margem = 5;
+    const margemDesejada = 5;
+    const areaLargura = this.largura - this.bordaArena * 2;
+    const areaAltura = this.altura - this.bordaArena * 2;
+    const margem = Math.min(margemDesejada, Math.floor(Math.min(areaLargura, areaAltura) / 4));
     const maxTentativas = 50;
 
     for (let tentativa = 0; tentativa < maxTentativas; tentativa++) {
-      const x = margem + Math.floor(Math.random() * (this.largura - margem * 2));
-      const y = margem + Math.floor(Math.random() * (this.altura - margem * 2));
+      const x = this.bordaArena + margem + Math.floor(Math.random() * (areaLargura - margem * 2));
+      const y = this.bordaArena + margem + Math.floor(Math.random() * (areaAltura - margem * 2));
 
       // Verificar se esta longe de outras cobras
       let seguro = true;
@@ -982,7 +1034,7 @@ class SalaDeJogo {
 
       const novaDirecao = BotIA.decidirDirecao(
         jogador, todosJogadores, this.comidas, this.largura, this.altura,
-        this.dificuldadeBots
+        this.dificuldadeBots, this.bordaArena
       );
 
       if (novaDirecao !== jogador.direcao) {
@@ -1119,7 +1171,70 @@ class SalaDeJogo {
       tempoRestante: this.tempoRestante,
       eventos: this.eventosRecentes,
       tick: this.tickAtual,
+      bordaArena: this.bordaArena,
+      encolhendo: this.encolhendo,
     };
+  }
+
+  /* =========================================================================
+   * ENCOLHIMENTO DA ARENA
+   * ======================================================================= */
+
+  /**
+   * Inicia o processo de encolhimento: pausa o jogo por 3 segundos.
+   * @private
+   */
+  _iniciarEncolhimento() {
+    this.encolhendo = true;
+    this.pausaEncolhimento = 3 * CONSTANTES.MULTI.TICKS_POR_SEGUNDO;
+    this.eventosRecentes.push({ tipo: 'arena_encolhendo' });
+  }
+
+  /**
+   * Aplica o encolhimento apos a pausa: atualiza bordas, reposiciona entidades.
+   * @private
+   */
+  _aplicarEncolhimento() {
+    this.encolhimentosFeitos++;
+    this.bordaArena = Math.round(
+      this.bordaFinal * (this.encolhimentosFeitos / this.totalEncolhimentos)
+    );
+    this.encolhendo = false;
+
+    // Remover comidas fora dos novos limites
+    this.comidas = this.comidas.filter(c =>
+      c.posicao.x >= this.bordaArena && c.posicao.x < this.largura - this.bordaArena &&
+      c.posicao.y >= this.bordaArena && c.posicao.y < this.altura - this.bordaArena
+    );
+
+    // Tratar cobras fora dos novos limites
+    for (const jogador of this.jogadores.values()) {
+      if (!jogador.vivo || jogador.cobra.length === 0) continue;
+
+      const cabeca = jogador.cobra[0];
+      const fora = cabeca.x < this.bordaArena || cabeca.x >= this.largura - this.bordaArena ||
+                   cabeca.y < this.bordaArena || cabeca.y >= this.altura - this.bordaArena;
+
+      if (fora) {
+        // Cabeca fora da area: reposicionar jogador
+        this._respawnarJogador(jogador);
+      } else {
+        // Truncar segmentos do corpo que ficaram fora
+        jogador.cobra = jogador.cobra.filter(seg =>
+          seg.x >= this.bordaArena && seg.x < this.largura - this.bordaArena &&
+          seg.y >= this.bordaArena && seg.y < this.altura - this.bordaArena
+        );
+      }
+
+      // Invulnerabilidade temporaria apos encolhimento
+      jogador.invulneravel = true;
+      jogador.tempoInvulneravel = 2000;
+    }
+
+    this.eventosRecentes.push({
+      tipo: 'arena_encolheu',
+      bordaArena: this.bordaArena,
+    });
   }
 
   /* =========================================================================

@@ -440,6 +440,11 @@ class ClienteMultijogador {
     // Fundo
     rend.desenharFundo();
 
+    // Borda da arena (zona de perigo)
+    if (estado.bordaArena > 0) {
+      rend.desenharBordaArena(estado.bordaArena, estado.encolhendo);
+    }
+
     // Desenhar comidas
     for (const comida of estado.comidas) {
       rend.desenharComida(comida.posicao, comida.tipo, comida.cor, comida.brilho);
@@ -478,6 +483,11 @@ class ClienteMultijogador {
     // Particulas
     this.particulas.atualizar();
     this.particulas.renderizar();
+
+    // Aviso de encolhimento (sobre tudo, antes do HUD)
+    if (estado.encolhendo) {
+      rend.desenharAvisoEncolhimento();
+    }
 
     // Atualizar HUD
     this._atualizarHUDMulti(estado);
@@ -588,6 +598,14 @@ class ClienteMultijogador {
 
         case 'respawn':
           this._adicionarFeed(`✨ Jogador renasceu! (${evento.vidasRestantes} vidas)`);
+          break;
+
+        case 'arena_encolhendo':
+          this._adicionarFeed('⚠️ Arena encolhendo! Cuidado!');
+          break;
+
+        case 'arena_encolheu':
+          this._adicionarFeed('🔥 Arena encolheu! Zona menor!');
           break;
       }
     }

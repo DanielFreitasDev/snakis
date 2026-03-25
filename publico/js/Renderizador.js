@@ -449,6 +449,86 @@ class Renderizador {
   }
 
   /* =========================================================================
+   * ENCOLHIMENTO DA ARENA
+   * ======================================================================= */
+
+  /**
+   * Desenha a zona de perigo (area fora da arena ativa) com overlay,
+   * listras diagonais animadas e borda brilhante.
+   * @param {number} bordaArena - Celulas de margem em cada lado.
+   * @param {boolean} encolhendo - Se a arena esta em processo de encolhimento.
+   */
+  desenharBordaArena(bordaArena, encolhendo) {
+    if (bordaArena <= 0) return;
+
+    const ctx = this.ctx;
+    const tam = this.tamanhoCelula;
+    const b = bordaArena * tam;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+
+    // Clip para a zona de perigo (borda ao redor da area jogavel)
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(w, 0); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    ctx.moveTo(b, b); ctx.lineTo(b, h - b); ctx.lineTo(w - b, h - b); ctx.lineTo(w - b, b); ctx.closePath();
+    ctx.clip('evenodd');
+
+    // Overlay vermelho escuro
+    ctx.fillStyle = encolhendo ? 'rgba(180, 15, 15, 0.45)' : 'rgba(150, 15, 15, 0.3)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Listras diagonais de aviso
+    ctx.strokeStyle = encolhendo ? 'rgba(255, 40, 40, 0.2)' : 'rgba(255, 40, 40, 0.1)';
+    ctx.lineWidth = 4;
+    const step = tam * 1.5;
+    const offset = encolhendo ? (this.tickAnimacao * 2) % step : 0;
+    for (let i = -h + offset; i < w + h; i += step) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + h, h);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Linha de borda brilhante
+    const pulso = encolhendo ? 0.5 + Math.sin(this.tickAnimacao * 0.3) * 0.5 : 0.6;
+    ctx.strokeStyle = `rgba(255, 50, 50, ${pulso})`;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff3333';
+    ctx.shadowBlur = encolhendo ? 20 : 10;
+    ctx.strokeRect(b, b, w - 2 * b, h - 2 * b);
+    ctx.shadowBlur = 0;
+  }
+
+  /**
+   * Desenha o aviso central pulsante "ARENA ENCOLHENDO!" durante a pausa.
+   */
+  desenharAvisoEncolhimento() {
+    const ctx = this.ctx;
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+
+    // Overlay escuro
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Texto pulsante
+    ctx.save();
+    const pulso = 0.7 + Math.sin(this.tickAnimacao * 0.2) * 0.3;
+    ctx.globalAlpha = pulso;
+    ctx.font = 'bold 32px "Orbitron", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#ff4444';
+    ctx.fillText('ARENA ENCOLHENDO!', w / 2, h / 2);
+    ctx.restore();
+  }
+
+  /* =========================================================================
    * UTILITARIOS DE DESENHO
    * ======================================================================= */
 

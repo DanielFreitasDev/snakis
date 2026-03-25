@@ -80,7 +80,7 @@ class BotIA {
    * @param {string} dificuldade - Nivel: 'facil' | 'normal' | 'dificil'.
    * @returns {string} Direcao escolhida.
    */
-  static decidirDirecao(bot, todosJogadores, comidas, largura, altura, dificuldade) {
+  static decidirDirecao(bot, todosJogadores, comidas, largura, altura, dificuldade, bordaArena = 0) {
     if (!bot.vivo || bot.cobra.length === 0) return bot.direcao;
 
     const cfg = DIFICULDADES[dificuldade] || DIFICULDADES.normal;
@@ -94,8 +94,8 @@ class BotIA {
 
       // --- Verificacoes de seguranca (sempre aplicam) ---
 
-      // Parede
-      if (pos.x < 0 || pos.x >= largura || pos.y < 0 || pos.y >= altura) {
+      // Parede (incluindo borda da arena)
+      if (pos.x < bordaArena || pos.x >= largura - bordaArena || pos.y < bordaArena || pos.y >= altura - bordaArena) {
         return { direcao, seguro: false, pontuacao: -1000 };
       }
 
@@ -159,7 +159,7 @@ class BotIA {
       }
 
       // ====== SEGURANCA (paredes e espaco) ======
-      const distParede = Math.min(pos.x, pos.y, largura - 1 - pos.x, altura - 1 - pos.y);
+      const distParede = Math.min(pos.x - bordaArena, pos.y - bordaArena, largura - 1 - bordaArena - pos.x, altura - 1 - bordaArena - pos.y);
       if (distParede <= 1) pontuacaoSeguranca -= 10;
       else if (distParede <= 3) pontuacaoSeguranca -= 3;
 
@@ -171,7 +171,7 @@ class BotIA {
           const v2 = CONSTANTES.DIRECOES[d2];
           const p2 = { x: pos.x + v2.x, y: pos.y + v2.y };
 
-          if (p2.x < 0 || p2.x >= largura || p2.y < 0 || p2.y >= altura) continue;
+          if (p2.x < bordaArena || p2.x >= largura - bordaArena || p2.y < bordaArena || p2.y >= altura - bordaArena) continue;
           if (bot.cobra.some(s => s.x === p2.x && s.y === p2.y)) continue;
 
           let bloqueado = false;
