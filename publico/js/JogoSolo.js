@@ -27,12 +27,10 @@ class JogoSolo {
     this.elRecorde = document.getElementById('recorde');
     this.elVidas = document.getElementById('vidas');
     this.elBarraEfeitos = document.getElementById('barra-efeitos');
-    this.elTempo = document.getElementById('tempo');
     this.elTelaInicio = document.getElementById('tela-inicio');
     this.elTelaGameover = document.getElementById('tela-gameover');
     this.elTelaPausado = document.getElementById('tela-pausado');
     this.elPontuacaoFinal = document.getElementById('pontuacao-final');
-    this.elTempoFinal = document.getElementById('tempo-final');
     this.elNovoRecorde = document.getElementById('novo-recorde');
 
     // Configuracoes do grid
@@ -59,10 +57,8 @@ class JogoSolo {
     // Efeitos ativos
     this.efeitos = {
       velocidade: { ativo: false, tempoRestante: 0 },
+      escudo: { ativo: false, tempoRestante: 0 },
     };
-
-    // Timer de tempo jogado (em milissegundos)
-    this.tempoJogado = 0;
 
     // Controle de velocidade
     this.velocidadeAtual = CONSTANTES.COBRA.VELOCIDADE_BASE;
@@ -107,8 +103,8 @@ class JogoSolo {
     this.velocidadeAtual = CONSTANTES.COBRA.VELOCIDADE_BASE;
     this.efeitos = {
       velocidade: { ativo: false, tempoRestante: 0 },
+      escudo: { ativo: false, tempoRestante: 0 },
     };
-    this.tempoJogado = 0;
 
     // Posicionar cobra no centro do mapa
     const centroX = Math.floor(this.larguraGrid / 2);
@@ -182,11 +178,6 @@ class JogoSolo {
 
     // Exibir tela de game over
     this.elPontuacaoFinal.textContent = this.pontuacao.toLocaleString('pt-BR');
-    const totalSegs = Math.floor(this.tempoJogado / 1000);
-    const mins = Math.floor(totalSegs / 60);
-    const segs = totalSegs % 60;
-    this.elTempoFinal.textContent =
-      String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
     this.elNovoRecorde.style.display = novoRecorde ? 'block' : 'none';
     this.elTelaGameover.style.display = 'flex';
 
@@ -214,9 +205,6 @@ class JogoSolo {
   _tick() {
     // Atualizar temporizadores de efeitos
     this._atualizarEfeitos();
-
-    // Atualizar timer de tempo jogado
-    this.tempoJogado += 1000 / CONSTANTES.SOLO.TICKS_POR_SEGUNDO;
 
     // Sistema de velocidade: a cobra so move quando o contador atinge o limite
     this.contadorMovimento++;
@@ -283,6 +271,17 @@ class JogoSolo {
    * @private
    */
   _processarColisao() {
+    // Escudo protege contra colisao
+    if (this.efeitos.escudo.ativo) {
+      this.efeitos.escudo.ativo = false;
+      this.efeitos.escudo.tempoRestante = 0;
+
+      // Inverter direcao como "rebote"
+      this.direcao = CONSTANTES.DIRECAO_OPOSTA[this.direcao];
+      this.filaDeDirecoes = [];
+      return;
+    }
+
     if (this.invulneravel) return;
 
     this.vidas--;
@@ -395,6 +394,11 @@ class JogoSolo {
       case 'vida':
         this.vidas++;
         break;
+
+      case 'escudo':
+        this.efeitos.escudo.ativo = true;
+        this.efeitos.escudo.tempoRestante += tipos.ESCUDO.duracao;
+        break;
     }
   }
 
@@ -407,16 +411,12 @@ class JogoSolo {
     const posicao = this._encontrarPosicaoLivre();
     if (!posicao) return;
 
-    // Sortear tipo com roleta ponderada (sem escudo no modo solo)
-    const tiposDisponiveis = Object.values(CONSTANTES.TIPOS_COMIDA)
-      .filter(t => t.tipo !== 'escudo');
-    const somaProb = tiposDisponiveis.reduce((s, t) => s + t.probabilidade, 0);
-
-    const sorteio = Math.random() * somaProb;
+    // Sortear tipo com roleta ponderada
+    const sorteio = Math.random();
     let acumulado = 0;
     let tipoSorteado = CONSTANTES.TIPOS_COMIDA.NORMAL;
 
-    for (const tipo of tiposDisponiveis) {
+    for (const tipo of Object.values(CONSTANTES.TIPOS_COMIDA)) {
       acumulado += tipo.probabilidade;
       if (sorteio <= acumulado) {
         tipoSorteado = tipo;
@@ -498,6 +498,15 @@ class JogoSolo {
         this.velocidadeAtual = CONSTANTES.COBRA.VELOCIDADE_BASE;
       }
     }
+
+    // Escudo
+    if (this.efeitos.escudo.ativo) {
+      this.efeitos.escudo.tempoRestante -= msPerTick;
+      if (this.efeitos.escudo.tempoRestante <= 0) {
+        this.efeitos.escudo.ativo = false;
+        this.efeitos.escudo.tempoRestante = 0;
+      }
+    }
   }
 
   /* =========================================================================
@@ -543,7 +552,7 @@ class JogoSolo {
         '#00cc66',     // Cor secundaria
         this.direcao,
         {
-          escudo: false,
+          escudo: this.efeitos.escudo.ativo,
           invulneravel: this.invulneravel,
           velocidade: this.efeitos.velocidade.ativo,
         }
@@ -560,6 +569,16 @@ class JogoSolo {
         );
       }
 
+      // Brilho do escudo
+      if (this.efeitos.escudo.ativo && this.cobra.length > 0) {
+        const cabeca = this.cobra[0];
+        const tam = rend.tamanhoCelula;
+        this.particulas.criarBrilho(
+          cabeca.x * tam + tam / 2,
+          cabeca.y * tam + tam / 2,
+          '#00ffff'
+        );
+      }
     }
 
     // Atualizar e renderizar particulas (sempre ativo para animacoes)
@@ -581,13 +600,6 @@ class JogoSolo {
   _atualizarHUD() {
     this.elPontuacao.textContent = this.pontuacao.toLocaleString('pt-BR');
 
-    // Timer formatado como MM:SS
-    const totalSegs = Math.floor(this.tempoJogado / 1000);
-    const mins = Math.floor(totalSegs / 60);
-    const segs = totalSegs % 60;
-    this.elTempo.textContent =
-      String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-
     // Vidas como coracoes
     let vidasHtml = '';
     for (let i = 0; i < this.vidas; i++) {
@@ -607,6 +619,11 @@ class JogoSolo {
     if (this.efeitos.velocidade.ativo) {
       const segs = Math.ceil(this.efeitos.velocidade.tempoRestante / 1000);
       html += `<div class="efeito-ativo efeito-velocidade">⚡ Velocidade ${segs}s</div>`;
+    }
+
+    if (this.efeitos.escudo.ativo) {
+      const segs = Math.ceil(this.efeitos.escudo.tempoRestante / 1000);
+      html += `<div class="efeito-ativo efeito-escudo">🛡️ Escudo ${segs}s</div>`;
     }
 
     this.elBarraEfeitos.innerHTML = html;
