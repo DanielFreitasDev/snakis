@@ -1,6 +1,8 @@
-# 🐍 Snake Game — Multiplayer em Rede Local
+# 🐍 Snakis — Deslize, Devore e Domine!
 
-Um jogo Snake moderno e bonito, jogável no navegador, com **modo solo** e **multiplayer em tempo real** na rede local. Construído com Node.js, Express, Socket.IO e HTML5 Canvas.
+Um jogo snake moderno e voraz, jogavel no navegador, com **modo solo** e **multiplayer em tempo real** na rede local. Construido com Node.js, Express, Socket.IO e HTML5 Canvas.
+
+> *"Quem rasteja por ultimo, rasteja melhor!"*
 
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-blue)
@@ -8,13 +10,13 @@ Um jogo Snake moderno e bonito, jogável no navegador, com **modo solo** e **mul
 
 ---
 
-## Índice
+## Indice
 
-- [Visão Geral](#visão-geral)
+- [Visao Geral](#visao-geral)
 - [Funcionalidades](#funcionalidades)
 - [Tecnologias Utilizadas](#tecnologias-utilizadas)
-- [Pré-requisitos](#pré-requisitos)
-- [Instalação](#instalação)
+- [Pre-requisitos](#pre-requisitos)
+- [Instalacao](#instalacao)
 - [Como Jogar](#como-jogar)
   - [Modo Solo](#modo-solo)
   - [Modo Multiplayer](#modo-multiplayer)
@@ -23,48 +25,49 @@ Um jogo Snake moderno e bonito, jogável no navegador, com **modo solo** e **mul
 - [Regras do Multiplayer](#regras-do-multiplayer)
 - [Arquitetura do Projeto](#arquitetura-do-projeto)
 - [Estrutura de Pastas](#estrutura-de-pastas)
-- [Personalização](#personalização)
-- [Solução de Problemas](#solução-de-problemas)
+- [Personalizacao](#personalizacao)
+- [Solucao de Problemas](#solucao-de-problemas)
 
 ---
 
-## Visão Geral
+## Visao Geral
 
-Este é um jogo Snake completo com duas modalidades:
+**Snakis** e o classico jogo da cobra reinventado com duas modalidades:
 
-1. **Modo Solo** — Jogue sozinho, colete comidas especiais, acumule pontos e tente bater seus recordes. Tudo roda localmente no seu navegador.
+1. **Modo Solo** — Devore tudo no caminho, colete comidas especiais e prove que voce e a cobra mais voraz! Tudo roda localmente no seu navegador.
 
-2. **Modo Multiplayer** — Jogue com amigos conectados à mesma rede Wi-Fi/LAN. O servidor gerencia toda a lógica do jogo em tempo real via WebSocket, garantindo que todos os jogadores vejam os movimentos uns dos outros instantaneamente.
+2. **Modo Multiplayer** — A arena e sua! Jogue com amigos conectados a mesma rede Wi-Fi/LAN. O servidor gerencia toda a logica do jogo em tempo real via WebSocket — descubra quem e a cobra suprema!
 
 ---
 
 ## Funcionalidades
 
 ### Modo Solo
-- 🍎 Comidas especiais com efeitos únicos (velocidade, vida extra, escudo, etc.)
+- 🍎 Comidas especiais com efeitos unicos (velocidade, vida extra, escudo, etc.)
 - ❤️ Sistema de vidas (3 vidas iniciais)
 - 🏆 Recordes salvos localmente no navegador (top 10)
-- ⚡ Efeitos temporários (boost de velocidade, escudo protetor)
-- ✨ Efeitos visuais com partículas ao coletar comida
+- ⚡ Efeitos temporarios (boost de velocidade, escudo protetor)
+- ✨ Efeitos visuais com particulas ao coletar comida
 - ⏸ Pausa com ESC ou P
 
 ### Modo Multiplayer
-- 👥 Até 6 jogadores simultâneos na mesma rede
-- 🎨 Cada jogador com cor única e nickname
+- 👥 Ate 6 jogadores simultaneos na mesma rede
+- 🎨 Cada jogador com cor unica e nickname
 - 👑 Coroa rotativa no jogador com a maior cobra (o "rei")
-- 💥 Sistema de colisão especial entre cobras
+- 💥 Sistema de colisao especial entre cobras
 - 🛡️ Comidas especiais compartilhadas (velocidade, escudo, vida extra)
 - 📊 Placar em tempo real na lateral da tela
-- 💬 Feed de eventos (eliminações, mortes, respawns)
-- ⏱️ Partidas com tempo limitado (3 minutos)
+- 💬 Feed de eventos (eliminacoes, mortes, respawns)
+- ⏱️ Partidas com tempo limitado
 - 🏆 Ranking final com medalhas
+- 🤖 Bots com niveis de dificuldade para preencher a arena
 
 ### Visual e UX
 - 🌙 Tema escuro moderno com efeitos neon
-- 🎆 Sistema de partículas para feedback visual
+- 🎆 Sistema de particulas para feedback visual
 - 🐍 Cobras com gradiente, olhos e brilho
 - 📱 Suporte a dispositivos mobile (touch e swipe)
-- 🎨 Interface com glassmorphism e animações CSS
+- 🎨 Interface com glassmorphism e animacoes CSS
 
 ---
 
@@ -73,45 +76,41 @@ Este é um jogo Snake completo com duas modalidades:
 | Tecnologia | Uso |
 |---|---|
 | **Node.js** | Runtime do servidor |
-| **Express** | Servidor HTTP para arquivos estáticos |
-| **Socket.IO** | Comunicação WebSocket em tempo real |
-| **HTML5 Canvas** | Renderização do jogo |
-| **CSS3** | Interface com glassmorphism e animações |
-| **JavaScript (ES6+)** | Lógica do jogo (cliente e servidor) |
+| **Express** | Servidor HTTP para arquivos estaticos |
+| **Socket.IO** | Comunicacao WebSocket em tempo real |
+| **HTML5 Canvas** | Renderizacao do jogo |
+| **CSS3** | Interface com glassmorphism e animacoes |
+| **JavaScript (ES6+)** | Logica do jogo (cliente e servidor) |
 
 ---
 
-## Pré-requisitos
+## Pre-requisitos
 
-- **Node.js** versão 18 ou superior
+- **Node.js** versao 18 ou superior
 - **npm** (vem com o Node.js)
 - Navegador moderno (Chrome, Firefox, Edge, Safari)
 
-Para verificar se o Node.js está instalado:
+Para verificar se o Node.js esta instalado:
 
 ```bash
 node --version  # Deve mostrar v18.x.x ou superior
 npm --version   # Deve mostrar 8.x.x ou superior
 ```
 
-Se não tiver o Node.js instalado, baixe em: https://nodejs.org/
+Se nao tiver o Node.js instalado, baixe em: https://nodejs.org/
 
 ---
 
-## Instalação
+## Instalacao
 
 ### 1. Clone ou baixe o projeto
 
 ```bash
-# Se estiver usando Git:
-git clone https://github.com/DanielFreitasDev/snake-game.git
-cd snake-game
-
-# Ou extraia o arquivo zip e entre na pasta:
+git clone https://github.com/DanielFreitasDev/snakis.git
 cd snake-game
 ```
 
-### 2. Instale as dependências
+### 2. Instale as dependencias
 
 ```bash
 npm install
@@ -123,24 +122,24 @@ npm install
 npm start
 ```
 
-Você verá uma mensagem como:
+Voce vera uma mensagem como:
 
 ```
   ╔══════════════════════════════════════════════╗
-  ║        🐍  SNAKE GAME - Servidor Ativo       ║
+  ║       🐍  SNAKIS - Servidor Rastejando!      ║
   ╠══════════════════════════════════════════════╣
   ║  Local:  http://localhost:3000              ║
   ║  Rede:   http://192.168.1.100:3000          ║
   ╠══════════════════════════════════════════════╣
   ║  Compartilhe o endereco de rede com seus     ║
-  ║  amigos para jogar no modo multiplayer!      ║
+  ║  amigos e descubra quem e a cobra suprema!   ║
   ╚══════════════════════════════════════════════╝
 ```
 
 ### 4. Abra no navegador
 
 - **No seu computador:** acesse `http://localhost:3000`
-- **Em outros dispositivos da rede:** acesse `http://<IP-DA-REDE>:3000` (o IP é mostrado ao iniciar o servidor)
+- **Em outros dispositivos da rede:** acesse `http://<IP-DA-REDE>:3000` (o IP e mostrado ao iniciar o servidor)
 
 ### Modo desenvolvimento (auto-reload)
 
@@ -148,7 +147,7 @@ Você verá uma mensagem como:
 npm run dev
 ```
 
-Usa `node --watch` para reiniciar o servidor automaticamente ao editar arquivos do servidor.
+Usa `node --watch` para reiniciar o servidor automaticamente ao editar arquivos.
 
 ### Porta personalizada
 
@@ -162,43 +161,43 @@ PORTA=8080 npm start
 
 ### Modo Solo
 
-1. Acesse o jogo no navegador
+1. Acesse o Snakis no navegador
 2. Clique em **"Modo Solo"** no menu principal
 3. Clique em **"Iniciar Jogo"**
 4. Use as setas do teclado ou WASD para mover a cobra
-5. Colete comidas para crescer e ganhar pontos
-6. Comidas especiais dão poderes temporários
+5. Devore comidas para crescer e ganhar pontos
+6. Comidas especiais dao poderes temporarios
 7. Evite bater nas paredes e em si mesma
-8. Você tem **3 vidas** — ao perder todas, o jogo acaba
-9. Seus recordes são salvos automaticamente no navegador
+8. Voce tem **3 vidas** — ao perder todas, fim de jogo!
+9. Seus recordes sao salvos automaticamente no navegador
 
 ### Modo Multiplayer
 
 1. Inicie o servidor (`npm start`)
-2. Acesse o jogo no navegador
+2. Acesse o Snakis no navegador
 3. Clique em **"Multijogador"** no menu principal
 4. Digite seu **apelido** (nickname)
-5. Escolha uma opção:
-   - **Criar Nova Sala**: cria uma sala e gera um código (ex: `A3KX7`)
-   - **Entrar com Código**: digite o código de uma sala existente
-   - **Clicar em uma sala** da lista de salas disponíveis
+5. Escolha uma opcao:
+   - **Criar Nova Sala**: cria uma sala e gera um codigo (ex: `A3KX7`)
+   - **Entrar com Codigo**: digite o codigo de uma sala existente
+   - **Clicar em uma sala** da lista de salas disponiveis
 6. Na sala de espera:
-   - Compartilhe o **código da sala** com seus amigos
+   - Compartilhe o **codigo da sala** com seus amigos
+   - Adicione **bots** se quiser mais acao na arena!
    - Todos devem clicar em **"Estou Pronto!"**
    - Quando todos estiverem prontos, clique em **"Iniciar Partida"**
 7. Durante a partida:
-   - Colete comidas para crescer e ganhar pontos
-   - Ataque outras cobras com a cabeça para remover seus segmentos
+   - Devore comidas para crescer e ganhar pontos
+   - Ataque outras cobras com a cabeca para roubar seus segmentos
    - A maior cobra recebe uma **coroa dourada** 👑
-   - A partida dura **3 minutos**
-8. Ao final, um ranking com medalhas é exibido
+8. Ao final, descubra quem e a cobra mais voraz no ranking!
 
 #### Como conectar amigos na mesma rede
 
-1. Certifique-se de que ambos estão na **mesma rede Wi-Fi/LAN**
-2. No computador que roda o servidor, anote o **endereço de rede** mostrado ao iniciar (ex: `http://192.168.1.100:3000`)
-3. No dispositivo do amigo, abra o navegador e acesse esse endereço
-4. Pronto! Ambos estarão conectados ao mesmo servidor
+1. Certifique-se de que todos estao na **mesma rede Wi-Fi/LAN**
+2. No computador que roda o servidor, anote o **endereco de rede** mostrado ao iniciar (ex: `http://192.168.1.100:3000`)
+3. No dispositivo do amigo, abra o navegador e acesse esse endereco
+4. Pronto! A arena esta aberta!
 
 ---
 
@@ -206,7 +205,7 @@ PORTA=8080 npm start
 
 ### Teclado
 
-| Tecla | Ação |
+| Tecla | Acao |
 |---|---|
 | `↑` ou `W` | Mover para cima |
 | `↓` ou `S` | Mover para baixo |
@@ -216,8 +215,8 @@ PORTA=8080 npm start
 
 ### Mobile / Touch
 
-- **Botões direcionais** na parte inferior da tela
-- **Swipe** no canvas do jogo na direção desejada
+- **Botoes direcionais** na parte inferior da tela
+- **Swipe** no canvas do jogo na direcao desejada
 
 ---
 
@@ -225,61 +224,61 @@ PORTA=8080 npm start
 
 | Comida | Cor | Efeito | Pontos |
 |---|---|---|---|
-| 🍎 Maçã | 🟢 Verde | +1 segmento | 10 |
+| 🍎 Maca | 🟢 Verde | +1 segmento | 10 |
 | ⚡ Raio | 🟡 Amarelo | Velocidade aumentada por 5s | 15 |
 | ⭐ Estrela | 🟡 Dourado | +3 segmentos | 30 |
-| ❤️ Coração | 🔴 Rosa | +1 vida extra | 25 |
-| 🛡️ Escudo | 🔵 Ciano | Proteção contra colisão por 4s | 20 |
+| ❤️ Coracao | 🔴 Rosa | +1 vida extra | 25 |
+| 🛡️ Escudo | 🔵 Ciano | Protecao contra colisao por 4s | 20 |
 
 ---
 
 ## Regras do Multiplayer
 
-### Colisão entre Cobras
+### Colisao entre Cobras
 
-Quando a **cabeça** de uma cobra A atinge o **corpo** de outra cobra B:
+Quando a **cabeca** de uma cobra A atinge o **corpo** de outra cobra B:
 
-1. A cobra B **perde todos os segmentos** a partir do ponto de colisão
+1. A cobra B **perde todos os segmentos** a partir do ponto de colisao
 2. A cobra A ganha **5 pontos por segmento removido**
-3. Se a cobra B ficar apenas com a cabeça e for atingida novamente, ela é **eliminada**
-4. Eliminar um jogador concede **50 pontos bônus**
+3. Se a cobra B ficar apenas com a cabeca e for atingida novamente, ela e **eliminada**
+4. Eliminar um jogador concede **50 pontos bonus**
 
-### Colisão Cabeça-a-Cabeça
+### Colisao Cabeca-a-Cabeca
 
-Quando duas cabeças colidem diretamente:
+Quando duas cabecas colidem diretamente:
 
-- A cobra **maior** vence — a menor é eliminada
+- A cobra **maior** vence — a menor e eliminada
 - Em caso de **empate**, ambas perdem metade dos segmentos
 
 ### Escudo e Invulnerabilidade
 
-- O **escudo** (comida ciano) protege contra colisões com outras cobras por 4 segundos
+- O **escudo** (comida ciano) protege contra colisoes com outras cobras por 4 segundos
 - Se uma cobra **com escudo** for atacada, o **atacante** morre em vez do alvo (refletido!)
-- Após perder uma vida e renascer, o jogador ganha **3 segundos de invulnerabilidade** (cobra pisca)
+- Apos perder uma vida e renascer, o jogador ganha **3 segundos de invulnerabilidade** (cobra pisca)
 
-### Condições de Vitória
+### Condicoes de Vitoria
 
 A partida termina quando:
-- O **tempo** de 3 minutos acaba — vence quem tem mais pontos
-- Resta apenas **1 jogador vivo** — esse jogador vence
+- O **tempo** acaba — vence quem tem mais pontos
+- Resta apenas **1 jogador vivo** — esse jogador e a cobra suprema!
 
 ---
 
 ## Arquitetura do Projeto
 
 ### Modo Solo
-O jogo roda **inteiramente no navegador** do jogador. A lógica de jogo (movimentação, colisões, comida) é processada no JavaScript do cliente. Os recordes são salvos no `localStorage` do navegador.
+O jogo roda **inteiramente no navegador** do jogador. A logica de jogo (movimentacao, colisoes, comida) e processada no JavaScript do cliente. Os recordes sao salvos no `localStorage` do navegador.
 
 ### Modo Multiplayer
-O servidor é **autoritativo** (*server-authoritative*): toda a lógica do jogo roda no servidor Node.js. Os clientes apenas:
-- Enviam **inputs** (mudanças de direção) via WebSocket
+O servidor e **autoritativo** (*server-authoritative*): toda a logica do jogo roda no servidor Node.js. Os clientes apenas:
+- Enviam **inputs** (mudancas de direcao) via WebSocket
 - Recebem o **estado completo** do jogo a cada tick (20x por segundo)
 - **Renderizam** o estado recebido no Canvas
 
 Isso garante:
-- ✅ Sincronização perfeita entre todos os jogadores
-- ✅ Impossibilidade de trapaça no cliente
-- ✅ Experiência consistente para todos
+- ✅ Sincronizacao perfeita entre todos os jogadores
+- ✅ Impossibilidade de trapaca no cliente
+- ✅ Experiencia consistente para todos
 
 ### Fluxo de Dados (Multiplayer)
 
@@ -299,44 +298,44 @@ Isso garante:
 
 ### Design Patterns Utilizados
 
-- **Game Loop** — Separação entre atualização lógica (tick fixo) e renderização (frame variável)
+- **Game Loop** — Separacao entre atualizacao logica (tick fixo) e renderizacao (frame variavel)
 - **State** — Controle de estados do jogo (`aguardando` → `jogando` → `finalizado`)
-- **Observer** — Eventos Socket.IO para comunicação reativa entre servidor e clientes
+- **Observer** — Eventos Socket.IO para comunicacao reativa entre servidor e clientes
 - **Mediator** — Servidor como mediador central entre todos os jogadores
-- **Object Pool** — Sistema de partículas reutiliza objetos para evitar garbage collection
-- **Strategy** — Renderizador encapsula algoritmos de desenho, configurável por modo
+- **Object Pool** — Sistema de particulas reutiliza objetos para evitar garbage collection
+- **Strategy** — Renderizador encapsula algoritmos de desenho, configuravel por modo
 
 ---
 
 ## Estrutura de Pastas
 
 ```
-snake-game/
-├── package.json              # Dependências e scripts npm
+snakis/
+├── package.json              # Dependencias e scripts npm
 ├── .gitignore                # Arquivos ignorados pelo Git
 ├── README.md                 # Este arquivo
 ├── servidor.js               # Servidor Express + Socket.IO
 ├── jogo/
-│   └── SalaDeJogo.js         # Lógica de uma sala multiplayer (servidor)
-└── publico/                  # Arquivos estáticos servidos ao navegador
+│   └── SalaDeJogo.js         # Logica de uma sala multiplayer (servidor)
+└── publico/                  # Arquivos estaticos servidos ao navegador
     ├── index.html            # Menu principal
-    ├── solo.html             # Página do modo solo
-    ├── multijogador.html     # Página do modo multiplayer
+    ├── solo.html             # Pagina do modo solo
+    ├── multijogador.html     # Pagina do modo multiplayer
     ├── css/
     │   └── estilos.css       # Estilos globais (tema escuro, glassmorphism)
     └── js/
         ├── constantes.js     # Constantes compartilhadas (servidor + cliente)
-        ├── Renderizador.js   # Motor de renderização Canvas (cobras, comida, coroa)
-        ├── SistemaDeParticulas.js  # Efeitos visuais com partículas
-        ├── JogoSolo.js       # Lógica completa do modo solo
+        ├── Renderizador.js   # Motor de renderizacao Canvas (cobras, comida, coroa)
+        ├── SistemaDeParticulas.js  # Efeitos visuais com particulas
+        ├── JogoSolo.js       # Logica completa do modo solo
         └── ClienteMultijogador.js  # Cliente WebSocket do modo multiplayer
 ```
 
 ---
 
-## Personalização
+## Personalizacao
 
-### Alterar configurações do jogo
+### Alterar configuracoes do jogo
 
 Edite o arquivo `publico/js/constantes.js` para ajustar:
 
@@ -344,12 +343,12 @@ Edite o arquivo `publico/js/constantes.js` para ajustar:
 - **Velocidade da cobra**: `COBRA.VELOCIDADE_BASE` (maior = mais lento)
 - **Vidas iniciais**: `COBRA.VIDAS_INICIAIS`
 - **Quantidade de comida**: `SOLO.QUANTIDADE_COMIDA`, `MULTI.QUANTIDADE_COMIDA`
-- **Duração da partida multiplayer**: `MULTI.TEMPO_PARTIDA` (em segundos)
+- **Duracao da partida multiplayer**: `MULTI.TEMPO_PARTIDA` (em segundos)
 - **Probabilidade de comidas especiais**: Ajuste os valores de `probabilidade` em `TIPOS_COMIDA`
 
 ### Alterar cores das cobras
 
-As cores estão definidas em `CONSTANTES.CORES_COBRAS`. Cada cor tem uma versão `principal` (mais clara) e `secundaria` (mais escura, usada no gradiente).
+As cores estao definidas em `CONSTANTES.CORES_COBRAS`. Cada cor tem uma versao `principal` (mais clara) e `secundaria` (mais escura, usada no gradiente).
 
 ### Alterar porta do servidor
 
@@ -359,38 +358,38 @@ PORTA=8080 npm start
 
 ---
 
-## Solução de Problemas
+## Solucao de Problemas
 
-### "Conexão com o servidor perdida"
+### "Conexao com o servidor perdida"
 
-- Verifique se o servidor ainda está rodando
+- Verifique se o servidor ainda esta rodando
 - Certifique-se de estar na mesma rede que o servidor
-- Verifique se o firewall não está bloqueando a porta 3000
+- Verifique se o firewall nao esta bloqueando a porta 3000
 
-### "Sala não encontrada"
+### "Sala nao encontrada"
 
-- O código da sala é case-insensitive, mas deve ter exatamente 5 caracteres
-- A sala pode ter sido removida se todos os jogadores saíram
-- Clique em "Atualizar lista" para ver salas disponíveis
+- O codigo da sala e case-insensitive, mas deve ter exatamente 5 caracteres
+- A sala pode ter sido removida se todos os jogadores sairam
+- Clique em "Atualizar lista" para ver salas disponiveis
 
-### O jogo está lento
+### O jogo esta lento
 
 - Feche outras abas do navegador
 - Reduza o tamanho do grid em `constantes.js`
-- Em redes lentas, o multiplayer pode ter lag — priorize conexão Wi-Fi estável
+- Em redes lentas, o multiplayer pode ter lag — priorize conexao Wi-Fi estavel
 
-### A página não carrega
+### A pagina nao carrega
 
-- Verifique se o servidor está rodando (`npm start`)
+- Verifique se o servidor esta rodando (`npm start`)
 - Tente acessar `http://localhost:3000` no mesmo computador
 - Se acessando de outro dispositivo, use o IP de rede mostrado no console
 
-### O jogo não inicia no multiplayer
+### O jogo nao inicia no multiplayer
 
 - Todos os jogadores devem clicar em "Estou Pronto!"
-- É necessário um mínimo de 2 jogadores
-- Após todos prontos, qualquer um pode clicar em "Iniciar Partida"
+- E necessario um minimo de 2 jogadores (ou jogadores + bots)
+- Apos todos prontos, qualquer um pode clicar em "Iniciar Partida"
 
 ---
 
-Desenvolvido com Node.js, Express, Socket.IO e HTML5 Canvas.
+Desenvolvido com Node.js, Express, Socket.IO e HTML5 Canvas. 🐍

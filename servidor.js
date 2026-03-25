@@ -377,13 +377,13 @@ servidorHttp.listen(PORTA, '0.0.0.0', () => {
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════════╗');
-  console.log('  ║        🐍  SNAKE GAME - Servidor Ativo       ║');
+  console.log('  ║       🐍  SNAKIS - Servidor Rastejando!      ║');
   console.log('  ╠══════════════════════════════════════════════╣');
   console.log(`  ║  Local:  http://localhost:${PORTA}              ║`);
   console.log(`  ║  Rede:   http://${ipLocal}:${PORTA}          ║`);
   console.log('  ╠══════════════════════════════════════════════╣');
   console.log('  ║  Compartilhe o endereco de rede com seus     ║');
-  console.log('  ║  amigos para jogar no modo multiplayer!      ║');
+  console.log('  ║  amigos e descubra quem e a cobra suprema!   ║');
   console.log('  ╚══════════════════════════════════════════════╝');
   console.log('');
 });

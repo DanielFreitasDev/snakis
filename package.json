@@ -1,13 +1,13 @@
 {
-  "name": "snake-game",
+  "name": "snakis",
   "version": "1.0.0",
-  "description": "Jogo Snake moderno com modo solo e multiplayer em rede local",
+  "description": "Snakis — Deslize, devore e domine! Jogo snake com modo solo e multiplayer em rede local",
   "main": "servidor.js",
   "scripts": {
     "start": "node servidor.js",
     "dev": "node --watch servidor.js"
   },
-  "keywords": ["snake", "game", "multiplayer", "socket.io"],
+  "keywords": ["snakis", "snake", "game", "multiplayer", "socket.io"],
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.2",
