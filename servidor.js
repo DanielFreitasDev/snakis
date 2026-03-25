@@ -283,6 +283,21 @@ io.on('connection', (socket) => {
   });
 
   /**
+   * Altera o tempo da partida.
+   */
+  socket.on('alterar-tempo-partida', (segundos, callback) => {
+    const codigo = jogadorParaSala.get(socket.id);
+    if (!codigo) return callback({ sucesso: false });
+
+    const sala = salas.get(codigo);
+    if (!sala || sala.estado !== 'aguardando') return callback({ sucesso: false });
+
+    sala.alterarTempoPartida(segundos);
+    callback({ sucesso: true });
+    io.to(codigo).emit('sala-atualizada', sala.obterInfoSala());
+  });
+
+  /**
    * Altera a dificuldade dos bots na sala.
    */
   socket.on('alterar-dificuldade-bots', (nivel, callback) => {

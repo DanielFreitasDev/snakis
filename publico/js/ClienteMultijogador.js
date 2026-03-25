@@ -54,6 +54,7 @@ class ClienteMultijogador {
     this.elQuantidadeBots = document.getElementById('quantidade-bots');
     this.elLinhaDificuldade = document.getElementById('linha-dificuldade');
     this.elBotoesDificuldade = document.querySelectorAll('#bots-dificuldade .botao-dificuldade');
+    this.elBotoesTempo = document.querySelectorAll('#opcoes-tempo .botao-opcao');
 
     // Jogo
     this.canvasMulti = document.getElementById('canvas-multi');
@@ -373,6 +374,13 @@ class ClienteMultijogador {
     if (infoSala.dificuldadeBots) {
       this.elBotoesDificuldade.forEach(btn => {
         btn.classList.toggle('ativo', btn.dataset.dificuldade === infoSala.dificuldadeBots);
+      });
+    }
+
+    // Sincronizar botao de tempo ativo
+    if (infoSala.tempoPartida) {
+      this.elBotoesTempo.forEach(btn => {
+        btn.classList.toggle('ativo', Number(btn.dataset.tempo) === infoSala.tempoPartida);
       });
     }
 
@@ -749,6 +757,14 @@ class ClienteMultijogador {
       btn.addEventListener('click', () => {
         const nivel = btn.dataset.dificuldade;
         this.socket.emit('alterar-dificuldade-bots', nivel, () => {});
+      });
+    });
+
+    // Sala: Alterar tempo da partida
+    this.elBotoesTempo.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const segundos = Number(btn.dataset.tempo);
+        this.socket.emit('alterar-tempo-partida', segundos, () => {});
       });
     });
 

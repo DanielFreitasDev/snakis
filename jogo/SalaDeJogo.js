@@ -56,8 +56,11 @@ class SalaDeJogo {
     /** @type {string} Nivel de dificuldade dos bots: 'facil' | 'normal' | 'dificil' */
     this.dificuldadeBots = 'normal';
 
+    /** @type {number} Duracao configurada da partida em segundos */
+    this.tempoPartida = CONSTANTES.MULTI.TEMPO_PARTIDA;
+
     /** @type {number} Tempo restante da partida em segundos */
-    this.tempoRestante = CONSTANTES.MULTI.TEMPO_PARTIDA;
+    this.tempoRestante = this.tempoPartida;
 
     /** @type {number} Contador de ticks desde o inicio da partida */
     this.tickAtual = 0;
@@ -224,6 +227,17 @@ class SalaDeJogo {
   }
 
   /**
+   * Altera a duracao da partida.
+   * @param {number} segundos - Duracao em segundos (60 a 600).
+   */
+  alterarTempoPartida(segundos) {
+    const tempo = Number(segundos);
+    if (tempo >= 60 && tempo <= 600) {
+      this.tempoPartida = tempo;
+    }
+  }
+
+  /**
    * Retorna a quantidade de jogadores humanos na sala.
    * @returns {number}
    */
@@ -261,7 +275,7 @@ class SalaDeJogo {
   iniciarJogo() {
     this.estado = 'jogando';
     this.tickAtual = 0;
-    this.tempoRestante = CONSTANTES.MULTI.TEMPO_PARTIDA;
+    this.tempoRestante = this.tempoPartida;
     this.eventosRecentes = [];
 
     // Distribuir jogadores em posicoes espalhadas pelo mapa
@@ -1048,6 +1062,7 @@ class SalaDeJogo {
       jogadores: listaJogadores,
       maxJogadores: this.maxJogadores,
       dificuldadeBots: this.dificuldadeBots,
+      tempoPartida: this.tempoPartida,
     };
   }
 

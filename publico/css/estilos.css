@@ -916,6 +916,59 @@ button {
   color: var(--cor-alerta);
 }
 
+/* --- Configuracoes da partida --- */
+
+.sala-config {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.config-linha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.config-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cor-texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.config-opcoes {
+  display: flex;
+  gap: 6px;
+}
+
+.botao-opcao {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cor-texto-secundario);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.botao-opcao:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.botao-opcao.ativo {
+  background: var(--cor-primaria);
+  color: #0a0b1e;
+  border-color: var(--cor-primaria);
+}
+
 /* --- Controle de bots --- */
 
 .sala-bots {
