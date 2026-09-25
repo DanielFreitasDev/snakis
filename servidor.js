@@ -419,6 +419,39 @@ io.on('connection', (socket) => {
   });
 
   /**
+   * Altera a configuracao de uma comida: se da ponto, quanto e quantas
+   * chances tem de aparecer (ex: 'dourada', { daPonto: true, pontos: 50, chances: 15 }).
+   */
+  registrar('alterar-config-comida', (tipo, dados, callback) => {
+    const responder = callbackSeguro(callback);
+    const codigo = jogadorParaSala.get(socket.id);
+    if (!codigo) return responder({ sucesso: false });
+
+    const sala = salas.get(codigo);
+    if (!sala || sala.estado !== 'aguardando') return responder({ sucesso: false });
+
+    sala.alterarConfigComida(tipo, dados);
+    responder({ sucesso: true });
+    io.to(codigo).emit('sala-atualizada', sala.obterInfoSala());
+  });
+
+  /**
+   * Altera quantos pontos vale eliminar outro jogador.
+   */
+  registrar('alterar-pontos-eliminacao', (valor, callback) => {
+    const responder = callbackSeguro(callback);
+    const codigo = jogadorParaSala.get(socket.id);
+    if (!codigo) return responder({ sucesso: false });
+
+    const sala = salas.get(codigo);
+    if (!sala || sala.estado !== 'aguardando') return responder({ sucesso: false });
+
+    sala.alterarPontosEliminacao(valor);
+    responder({ sucesso: true });
+    io.to(codigo).emit('sala-atualizada', sala.obterInfoSala());
+  });
+
+  /**
    * Revanche: reabre a sala finalizada para uma nova partida,
    * mantendo jogadores, bots e configurações.
    */

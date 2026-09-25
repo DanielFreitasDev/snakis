@@ -71,6 +71,9 @@ class ClienteMultijogador {
     this.elLinhaDificuldade = document.getElementById('linha-dificuldade');
     this.elBotoesDificuldade = document.querySelectorAll('#bots-dificuldade .botao-dificuldade');
     this.elBotoesTempo = document.querySelectorAll('#opcoes-tempo .botao-opcao');
+    this.elListaConfigComidas = document.getElementById('lista-config-comidas');
+    this.elPontosEliminacao = document.getElementById('pontos-eliminacao');
+    this._montarConfigComidas();
 
     // Jogo
     this.canvasMulti = document.getElementById('canvas-multi');
@@ -591,6 +594,121 @@ class ClienteMultijogador {
    * ======================================================================= */
 
   /**
+   * Cria uma linha por tipo de comida na configuracao da sala:
+   * checkbox "da ponto" + quantos pontos + quantas chances de aparecer.
+   * @private
+   */
+  _montarConfigComidas() {
+    const maxPontos = CONSTANTES.PONTUACAO.MAXIMO_CONFIGURAVEL;
+    const maxChances = CONSTANTES.MULTI.MAXIMO_CHANCES;
+    let html = '';
+    for (const comida of Object.values(CONSTANTES.TIPOS_COMIDA)) {
+      const id = `comida-${comida.tipo}`;
+      html += `
+        <li class="linha-comida" data-tipo="${comida.tipo}">
+          <label class="comida-nome" title="Desmarque para não dar ponto">
+            <input type="checkbox" class="comida-da-ponto" checked
+                   aria-label="${comida.descricao} dá ponto">
+            <span class="comida-emoji" aria-hidden="true">${comida.emoji}</span>
+            <span>${comida.descricao}</span>
+          </label>
+          <div class="comida-campos">
+            <label class="campo-mini">
+              <span class="campo-mini-rotulo">Pontos</span>
+              <input type="number" class="comida-pontos" id="${id}-pontos"
+                     inputmode="numeric" min="0" max="${maxPontos}" step="5" enterkeyhint="done"
+                     aria-label="Pontos da comida ${comida.descricao}">
+            </label>
+            <label class="campo-mini">
+              <span class="campo-mini-rotulo">Chance <output class="comida-percentual"></output></span>
+              <input type="number" class="comida-chances" id="${id}-chances"
+                     inputmode="numeric" min="0" max="${maxChances}" step="1" enterkeyhint="done"
+                     aria-label="Chances de aparecer da comida ${comida.descricao}">
+            </label>
+          </div>
+        </li>
+      `;
+    }
+    this.elListaConfigComidas.innerHTML = html;
+    this.elPontosEliminacao.max = maxPontos;
+  }
+
+  /**
+   * Reflete na tela a configuracao de comidas e eliminacao vinda do
+   * servidor. O campo em que o jogador esta digitando nao eh sobrescrito,
+   * para nao "roubar" a edicao.
+   * @param {object} infoSala - Informacoes da sala vindas do servidor.
+   * @private
+   */
+  _sincronizarConfigComidas(infoSala) {
+    const emFoco = document.activeElement;
+    const definirValor = (input, valor) => {
+      if (input !== emFoco) input.value = valor;
+    };
+
+    if (infoSala.configComidas) {
+      for (const linha of this.elListaConfigComidas.children) {
+        const config = infoSala.configComidas[linha.dataset.tipo];
+        if (!config) continue;
+        const campoPontos = linha.querySelector('.comida-pontos');
+        linha.querySelector('.comida-da-ponto').checked = config.daPonto;
+        campoPontos.disabled = !config.daPonto;
+        definirValor(campoPontos, config.pontos);
+        definirValor(linha.querySelector('.comida-chances'), config.chances);
+      }
+      this._atualizarPercentuais(infoSala.configComidas);
+    }
+
+    if (typeof infoSala.pontosEliminacao === 'number') {
+      definirValor(this.elPontosEliminacao, infoSala.pontosEliminacao);
+    }
+  }
+
+  /**
+   * Mostra ao lado de "Chance" a porcentagem aproximada de cada comida,
+   * para ficar claro o efeito das chances (fichas do sorteio).
+   * @param {object} configComidas - Configuracao das comidas vinda do servidor.
+   * @private
+   */
+  _atualizarPercentuais(configComidas) {
+    const total = Object.values(configComidas).reduce((soma, c) => soma + c.chances, 0);
+    for (const linha of this.elListaConfigComidas.children) {
+      const config = configComidas[linha.dataset.tipo];
+      const saida = linha.querySelector('.comida-percentual');
+      if (!config || !saida) continue;
+      saida.textContent = total > 0 ? `${Math.round((config.chances / total) * 100)}%` : '';
+      linha.classList.toggle('comida-nao-aparece', config.chances === 0);
+    }
+  }
+
+  /**
+   * Le um campo numerico. Campo vazio vira null: o servidor ignora e
+   * devolve o valor anterior, em vez de zerar sem querer.
+   * @param {HTMLInputElement} campo
+   * @returns {number|null}
+   * @private
+   */
+  _lerNumero(campo) {
+    return campo.value === '' ? null : Number(campo.value);
+  }
+
+  /**
+   * Envia ao servidor a configuracao de uma comida a partir da linha dela.
+   * @param {HTMLElement} linha - Elemento <li> da comida.
+   * @private
+   */
+  _enviarConfigComida(linha) {
+    const daPonto = linha.querySelector('.comida-da-ponto').checked;
+    const campoPontos = linha.querySelector('.comida-pontos');
+    campoPontos.disabled = !daPonto;
+    this.socket.emit('alterar-config-comida', linha.dataset.tipo, {
+      daPonto,
+      pontos: this._lerNumero(campoPontos),
+      chances: this._lerNumero(linha.querySelector('.comida-chances')),
+    }, () => {});
+  }
+
+  /**
    * Atualiza a interface da sala de espera com os dados recebidos.
    * @param {object} infoSala - Informacoes da sala vindas do servidor.
    * @private
@@ -658,6 +776,9 @@ class ClienteMultijogador {
         btn.classList.toggle('ativo', Number(btn.dataset.tempo) === infoSala.tempoPartida);
       });
     }
+
+    // Sincronizar configuracao de comidas e pontuacao
+    this._sincronizarConfigComidas(infoSala);
 
     this.elListaJogadoresSala.innerHTML = html;
 
@@ -1366,6 +1487,18 @@ class ClienteMultijogador {
         const segundos = Number(btn.dataset.tempo);
         this.socket.emit('alterar-tempo-partida', segundos, () => {});
       });
+    });
+
+    // Sala: Configuracao das comidas (da ponto, pontos, chances). O 'change'
+    // dispara ao marcar/desmarcar e ao confirmar o numero (Enter ou sair do campo)
+    this.elListaConfigComidas.addEventListener('change', (e) => {
+      const linha = e.target.closest('.linha-comida');
+      if (linha) this._enviarConfigComida(linha);
+    });
+
+    // Sala: Pontos por eliminacao
+    this.elPontosEliminacao.addEventListener('change', () => {
+      this.socket.emit('alterar-pontos-eliminacao', this._lerNumero(this.elPontosEliminacao), () => {});
     });
 
     // Sala: Marcar pronto

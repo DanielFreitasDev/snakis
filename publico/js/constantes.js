@@ -47,6 +47,7 @@ const CONSTANTES = {
       segmentos: 1,
       probabilidade: 0.45,
       descricao: 'Maçã',
+      emoji: '🍎',
     },
     /** Boost de velocidade temporario */
     VELOCIDADE: {
@@ -58,6 +59,7 @@ const CONSTANTES = {
       duracao: 5000,
       probabilidade: 0.20,
       descricao: 'Raio',
+      emoji: '⚡',
     },
     /** Comida premium: aumenta a cobra em 3 segmentos */
     DOURADA: {
@@ -68,6 +70,7 @@ const CONSTANTES = {
       segmentos: 3,
       probabilidade: 0.15,
       descricao: 'Estrela',
+      emoji: '⭐',
     },
     /** Concede uma vida extra ao jogador */
     VIDA: {
@@ -78,6 +81,7 @@ const CONSTANTES = {
       segmentos: 0,
       probabilidade: 0.10,
       descricao: 'Coração',
+      emoji: '❤️',
     },
     /** Escudo temporario: protege contra colisoes */
     ESCUDO: {
@@ -89,11 +93,12 @@ const CONSTANTES = {
       duracao: 4000,
       probabilidade: 0.10,
       descricao: 'Escudo',
+      emoji: '🛡️',
     },
     /**
      * Caveira (so no multiplayer): por alguns segundos, qualquer cobra
      * que encostar em quem comeu morre na hora. Probabilidade 0 aqui para
-     * nao aparecer no solo; no multiplayer a chance vem de MULTI.CHANCE_CAVEIRA.
+     * nao aparecer no solo; no multiplayer a chance padrao vem de MULTI.CHANCE_CAVEIRA.
      */
     CAVEIRA: {
       tipo: 'caveira',
@@ -104,6 +109,7 @@ const CONSTANTES = {
       duracao: 6000,
       probabilidade: 0,
       descricao: 'Caveira',
+      emoji: '💀',
     },
   },
 
@@ -150,7 +156,8 @@ const CONSTANTES = {
     TEMPO_INVULNERAVEL: 3000,   // ms de invulnerabilidade apos respawn
     TEMPO_PARTIDA: 180,         // segundos (3 minutos por partida)
     TEMPO_RECONEXAO: 60,        // segundos que um jogador caido pode voltar a partida
-    CHANCE_CAVEIRA: 0.06,       // Chance de cada comida nova ser uma caveira (max. 1 no mapa)
+    CHANCE_CAVEIRA: 0.06,       // Chance padrao da caveira (max. 1 no mapa); a sala pode mudar
+    MAXIMO_CHANCES: 100,        // Teto das "chances" de aparecer configuraveis por comida
 
     /*
      * Velocidade das cobras em celulas por segundo. A cada encolhimento
@@ -180,7 +187,8 @@ const CONSTANTES = {
    * ======================================================================= */
   PONTUACAO: {
     REMOVER_SEGMENTO: 5,        // Pontos ao remover segmento de outro jogador
-    ELIMINAR_JOGADOR: 50,       // Pontos ao eliminar outro jogador
+    ELIMINAR_JOGADOR: 50,       // Pontos ao eliminar outro jogador (padrao; a sala pode mudar)
+    MAXIMO_CONFIGURAVEL: 1000,  // Teto dos pontos configuraveis na sala (comidas e eliminacao)
   },
 };
 

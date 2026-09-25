@@ -56,6 +56,30 @@ class SalaDeJogo {
     /** @type {number} Duracao configurada da partida em segundos */
     this.tempoPartida = CONSTANTES.MULTI.TEMPO_PARTIDA;
 
+    /**
+     * @type {Object<string, {daPonto: boolean, pontos: number, chances: number}>}
+     * Configuracao de cada comida, indexada pelo tipo ('normal', 'dourada'...):
+     * - daPonto: false faz a comida nao dar ponto (os `pontos` ficam guardados
+     *   para voltar ao que era quando reativar);
+     * - chances: "fichas" no sorteio de qual comida nasce. Com 20 chances a
+     *   comida aparece o dobro de uma com 10; com 0 ela nao aparece.
+     */
+    this.configComidas = {};
+    for (const dadosTipo of Object.values(CONSTANTES.TIPOS_COMIDA)) {
+      // A caveira tem probabilidade 0 no solo; no multiplayer usa CHANCE_CAVEIRA
+      const probabilidade = dadosTipo.tipo === 'caveira'
+        ? CONSTANTES.MULTI.CHANCE_CAVEIRA
+        : dadosTipo.probabilidade;
+      this.configComidas[dadosTipo.tipo] = {
+        daPonto: true,
+        pontos: dadosTipo.pontos,
+        chances: Math.round(probabilidade * 100),
+      };
+    }
+
+    /** @type {number} Pontos ganhos ao eliminar outro jogador */
+    this.pontosEliminacao = CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+
     /** @type {number} Tempo restante da partida em segundos */
     this.tempoRestante = this.tempoPartida;
 
@@ -538,6 +562,64 @@ class SalaDeJogo {
   }
 
   /**
+   * Altera a configuracao de uma comida: se da ponto, quanto, e quantas
+   * chances tem de aparecer. Campos ausentes ou invalidos (ex: campo vazio)
+   * mantem o valor anterior.
+   * @param {string} tipo - Tipo da comida ('normal', 'dourada'...).
+   * @param {{daPonto?: boolean, pontos?: number, chances?: number}} dados
+   */
+  alterarConfigComida(tipo, dados) {
+    const config = Object.prototype.hasOwnProperty.call(this.configComidas, tipo)
+      ? this.configComidas[tipo]
+      : null;
+    if (!config || !dados || typeof dados !== 'object') return;
+
+    if (typeof dados.daPonto === 'boolean') config.daPonto = dados.daPonto;
+
+    const pontos = this._normalizarInteiro(dados.pontos, CONSTANTES.PONTUACAO.MAXIMO_CONFIGURAVEL);
+    if (pontos !== null) config.pontos = pontos;
+
+    const chances = this._normalizarInteiro(dados.chances, CONSTANTES.MULTI.MAXIMO_CHANCES);
+    if (chances !== null) config.chances = chances;
+  }
+
+  /**
+   * Altera quantos pontos vale eliminar outro jogador.
+   * @param {number} valor - Pontos (0 a MAXIMO_CONFIGURAVEL).
+   */
+  alterarPontosEliminacao(valor) {
+    const pontos = this._normalizarInteiro(valor, CONSTANTES.PONTUACAO.MAXIMO_CONFIGURAVEL);
+    if (pontos !== null) {
+      this.pontosEliminacao = pontos;
+    }
+  }
+
+  /**
+   * Converte um valor vindo do cliente em um inteiro entre 0 e `maximo`.
+   * Retorna null se nao for um numero — campo vazio chega como null e eh
+   * ignorado, em vez de virar 0.
+   * @param {*} valor
+   * @param {number} maximo
+   * @returns {number|null}
+   * @private
+   */
+  _normalizarInteiro(valor, maximo) {
+    if (typeof valor !== 'number' || !Number.isFinite(valor)) return null;
+    return Math.min(maximo, Math.max(0, Math.round(valor)));
+  }
+
+  /**
+   * Pontos que uma comida da segundo a configuracao da sala.
+   * @param {string} tipo - Tipo da comida.
+   * @returns {number}
+   * @private
+   */
+  _pontosDaComida(tipo) {
+    const config = this.configComidas[tipo];
+    return config && config.daPonto ? config.pontos : 0;
+  }
+
+  /**
    * Retorna a quantidade de jogadores humanos na sala.
    * @returns {number}
    */
@@ -982,8 +1064,8 @@ class SalaDeJogo {
   _aplicarEfeitoComida(jogador, comida) {
     const tipos = CONSTANTES.TIPOS_COMIDA;
 
-    // Somar pontos
-    jogador.pontuacao += comida.pontos;
+    // Somar pontos (conforme a configuracao da sala)
+    jogador.pontuacao += this._pontosDaComida(comida.tipo);
 
     switch (comida.tipo) {
       case 'normal':
@@ -1138,7 +1220,7 @@ class SalaDeJogo {
             // Regra principal: remover segmentos do alvo a partir do ponto de colisao
             if (alvo.cobra.length <= 1) {
               // Alvo so tem cabeca, entao eh eliminado
-              atacante.pontuacao += CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+              atacante.pontuacao += this.pontosEliminacao;
               atacante.eliminacoes++;
               this._processarMorte(alvo, 'colisao_cobra');
 
@@ -1188,13 +1270,13 @@ class SalaDeJogo {
 
     // Se apenas um tem escudo, o outro morre (escudo reflete)
     if (escudoA) {
-      jogadorA.pontuacao += CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+      jogadorA.pontuacao += this.pontosEliminacao;
       jogadorA.eliminacoes++;
       this._processarMorte(jogadorB, 'escudo_refletido');
       return;
     }
     if (escudoB) {
-      jogadorB.pontuacao += CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+      jogadorB.pontuacao += this.pontosEliminacao;
       jogadorB.eliminacoes++;
       this._processarMorte(jogadorA, 'escudo_refletido');
       return;
@@ -1217,12 +1299,12 @@ class SalaDeJogo {
 
     if (tamanhoA > tamanhoB) {
       // A eh maior, B morre
-      jogadorA.pontuacao += CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+      jogadorA.pontuacao += this.pontosEliminacao;
       jogadorA.eliminacoes++;
       this._processarMorte(jogadorB, 'colisao_cabeca');
     } else if (tamanhoB > tamanhoA) {
       // B eh maior, A morre
-      jogadorB.pontuacao += CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+      jogadorB.pontuacao += this.pontosEliminacao;
       jogadorB.eliminacoes++;
       this._processarMorte(jogadorA, 'colisao_cabeca');
     } else {
@@ -1247,7 +1329,7 @@ class SalaDeJogo {
   _matarPorCaveira(dono, vitima) {
     if (!vitima.vivo || vitima.invulneravel || vitima.cobra.length === 0) return;
 
-    dono.pontuacao += CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+    dono.pontuacao += this.pontosEliminacao;
     dono.eliminacoes++;
 
     this.eventosRecentes.push({
@@ -1363,7 +1445,6 @@ class SalaDeJogo {
       this.comidas.push({
         tipo: dadosTipo.tipo,
         posicao: { x: pos.x, y: pos.y },
-        pontos: dadosTipo.pontos,
         cor: dadosTipo.cor,
         brilho: dadosTipo.brilho,
         descricao: dadosTipo.descricao,
@@ -1379,8 +1460,8 @@ class SalaDeJogo {
 
   /**
    * Gera uma nova comida aleatoria em uma posicao livre do mapa.
-   * O tipo da comida eh sorteado com base nas probabilidades definidas
-   * nas constantes (sistema de roleta ponderada).
+   * O tipo da comida eh sorteado com base nas chances configuradas na
+   * sala (sistema de roleta ponderada).
    * @returns {boolean} True se a comida foi criada.
    * @private
    */
@@ -1388,14 +1469,13 @@ class SalaDeJogo {
     const posicao = this._encontrarPosicaoLivre();
     if (!posicao) return false; // Mapa completamente cheio (improvavel)
 
-    // Sortear tipo de comida usando probabilidades ponderadas
+    // Sortear tipo de comida usando as chances da sala
     const tipoSorteado = this._sortearTipoComida();
     const dadosTipo = CONSTANTES.TIPOS_COMIDA[tipoSorteado];
 
     this.comidas.push({
       tipo: dadosTipo.tipo,
       posicao,
-      pontos: dadosTipo.pontos,
       cor: dadosTipo.cor,
       brilho: dadosTipo.brilho,
       descricao: dadosTipo.descricao,
@@ -1405,25 +1485,33 @@ class SalaDeJogo {
   }
 
   /**
-   * Sorteia um tipo de comida usando roleta ponderada (weighted random).
-   * Comidas mais comuns tem maior probabilidade de aparecer.
+   * Sorteia um tipo de comida usando roleta ponderada (weighted random):
+   * cada comida entra com as `chances` configuradas na sala, entao quem
+   * tem mais chances aparece mais vezes.
    * @returns {string} Chave do tipo de comida em CONSTANTES.TIPOS_COMIDA.
    * @private
    */
   _sortearTipoComida() {
-    // Caveira: chance propria e no maximo uma no mapa por vez
+    // Caveira: no maximo uma no mapa por vez
     const temCaveira = this.comidas.some(c => c.tipo === 'caveira');
-    if (!temCaveira && Math.random() < CONSTANTES.MULTI.CHANCE_CAVEIRA) return 'CAVEIRA';
 
-    const sorteio = Math.random();
-    let acumulado = 0;
-
-    for (const [chave, tipo] of Object.entries(CONSTANTES.TIPOS_COMIDA)) {
-      acumulado += tipo.probabilidade;
-      if (sorteio <= acumulado) return chave;
+    const candidatos = [];
+    let total = 0;
+    for (const [chave, dadosTipo] of Object.entries(CONSTANTES.TIPOS_COMIDA)) {
+      if (dadosTipo.tipo === 'caveira' && temCaveira) continue;
+      const chances = this.configComidas[dadosTipo.tipo].chances;
+      if (chances <= 0) continue;
+      candidatos.push({ chave, chances });
+      total += chances;
     }
 
-    // Fallback: retornar comida normal
+    let sorteio = Math.random() * total;
+    for (const { chave, chances } of candidatos) {
+      sorteio -= chances;
+      if (sorteio < 0) return chave;
+    }
+
+    // Fallback (ex: todas as chances zeradas): comida normal
     return 'NORMAL';
   }
 
@@ -1622,6 +1710,8 @@ class SalaDeJogo {
       donoId: this.donoId,
       dificuldadeBots: this.dificuldadeBots,
       tempoPartida: this.tempoPartida,
+      configComidas: structuredClone(this.configComidas),
+      pontosEliminacao: this.pontosEliminacao,
     };
   }
 

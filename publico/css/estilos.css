@@ -1093,6 +1093,165 @@ button {
   border-color: var(--cor-primaria);
 }
 
+/* Comidas e pontos (secao recolhivel: <details> nativo, funciona com teclado) */
+
+.config-comidas {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.config-comidas-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 6px;
+}
+
+.config-comidas-titulo::-webkit-details-marker {
+  display: none;
+}
+
+.config-comidas-titulo::before {
+  content: '▸';
+  color: var(--cor-texto-secundario);
+  transition: transform 0.2s;
+}
+
+.config-comidas[open] > .config-comidas-titulo::before {
+  transform: rotate(90deg);
+}
+
+.config-comidas-dica {
+  font-size: 0.8rem;
+  color: var(--cor-texto-secundario);
+}
+
+.config-comidas-ajuda {
+  margin: 4px 0 10px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--cor-texto-secundario);
+  text-align: left;
+}
+
+.lista-comidas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Linha: nome a esquerda, campos a direita. Sem espaco, os campos
+   descem juntos para a linha de baixo (flex-wrap) em vez de estourar a tela */
+.linha-comida,
+.linha-eliminacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px 8px;
+  padding: 6px 8px 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  text-align: left;
+}
+
+.linha-eliminacao {
+  margin-top: 6px;
+}
+
+.comida-nome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 7.5rem;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 0.9rem;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+/* Os dois campos ficam juntos: quebram de linha em bloco, alinhados a direita */
+.comida-campos {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.comida-da-ponto {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--cor-primaria);
+  cursor: pointer;
+}
+
+.campo-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 4.75rem;
+}
+
+.campo-mini-rotulo {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--cor-texto-secundario);
+  white-space: nowrap;
+}
+
+.comida-percentual {
+  color: var(--cor-primaria);
+}
+
+.campo-mini input {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: 1rem; /* >= 16px: o iOS nao da zoom ao focar */
+  font-weight: 600;
+  text-align: right;
+}
+
+.campo-mini input:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Comida que nao da ponto: nome riscado (os pontos ficam guardados) */
+.linha-comida:has(.comida-da-ponto:not(:checked)) .comida-nome {
+  color: var(--cor-texto-secundario);
+  text-decoration: line-through;
+}
+
+/* Comida com 0 chances: nao aparece na partida */
+.linha-comida.comida-nao-aparece .comida-emoji {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.config-comidas-titulo:focus-visible,
+.comida-da-ponto:focus-visible,
+.campo-mini input:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
 /* --- Controle de bots --- */
 
 .sala-bots {

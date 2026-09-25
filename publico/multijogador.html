@@ -118,6 +118,34 @@
             <button class="botao-opcao" data-tempo="300">5 min</button>
           </div>
         </div>
+
+        <!-- Comidas e pontuacao: se cada comida da ponto, quanto, quantas chances
+             tem de aparecer, e quanto vale a eliminacao. As linhas das comidas
+             sao geradas a partir de CONSTANTES.TIPOS_COMIDA. -->
+        <details class="config-comidas">
+          <summary class="config-comidas-titulo">
+            <span class="config-label">Comidas e pontos</span>
+            <span class="config-comidas-dica">pontos e chance de aparecer</span>
+          </summary>
+          <p class="config-comidas-ajuda">
+            Desmarque para a comida não dar ponto. <strong>Chance</strong> é quantas
+            fichas ela tem no sorteio: mais chances, aparece mais; 0, não aparece.
+          </p>
+          <ul id="lista-config-comidas" class="lista-comidas"></ul>
+          <div class="linha-eliminacao">
+            <label class="comida-nome" for="pontos-eliminacao">
+              <span class="comida-emoji" aria-hidden="true">⚔️</span>
+              <span>Eliminar jogador</span>
+            </label>
+            <div class="comida-campos">
+              <label class="campo-mini">
+                <span class="campo-mini-rotulo">Pontos</span>
+                <input id="pontos-eliminacao" class="comida-pontos" type="number"
+                       inputmode="numeric" min="0" max="1000" step="5" enterkeyhint="done">
+              </label>
+            </div>
+          </div>
+        </details>
       </div>
 
       <!-- Controle de bots -->
