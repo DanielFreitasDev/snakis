@@ -221,6 +221,11 @@ class Renderizador {
       this._desenharEfeitoEscudo(segmentos, tam);
     }
 
+    // Efeito de caveira (aura roxa + cabeca de caveira)
+    if (opcoes.caveira) {
+      this._desenharEfeitoCaveira(segmentos, tam);
+    }
+
     // Efeito de velocidade (linhas de movimento)
     if (opcoes.velocidade) {
       this._desenharEfeitoVelocidade(segmentos, tam, direcao);
@@ -332,6 +337,40 @@ class Renderizador {
       );
       ctx.stroke();
     }
+
+    ctx.shadowBlur = 0;
+  }
+
+  /**
+   * Desenha o efeito da caveira: aura roxa pulsando rapido em volta do
+   * corpo (sinal de "nao encoste") e uma caveira no lugar da cabeca.
+   * @param {Array} segmentos - Segmentos da cobra.
+   * @param {number} tam - Tamanho da celula.
+   * @private
+   */
+  _desenharEfeitoCaveira(segmentos, tam) {
+    const ctx = this.ctx;
+    const pulso = 0.55 + Math.sin(this.tickAnimacao * 0.3) * 0.35;
+
+    ctx.strokeStyle = `rgba(176, 77, 255, ${pulso})`;
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#b04dff';
+    ctx.shadowBlur = 14;
+
+    for (const seg of segmentos) {
+      ctx.beginPath();
+      this._desenharRetanguloArredondado(
+        seg.x * tam - 2, seg.y * tam - 2,
+        tam + 4, tam + 4, 7
+      );
+      ctx.stroke();
+    }
+
+    const cabeca = segmentos[0];
+    ctx.font = `${Math.floor(tam * 0.85)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💀', cabeca.x * tam + tam / 2, cabeca.y * tam + tam / 2);
 
     ctx.shadowBlur = 0;
   }
@@ -474,6 +513,7 @@ class Renderizador {
       dourada: '⭐',
       vida: '❤️',
       escudo: '🛡️',
+      caveira: '💀',
     };
 
     const emoji = emojis[tipo] || '🍎';

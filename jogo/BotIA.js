@@ -260,6 +260,7 @@ class BotIA {
       }
       case 'vida': return bot.vidas <= 1 ? 3.5 : 1.5;
       case 'velocidade': return 1.3;
+      case 'caveira': return 3.0; // Corpo letal: arma forte perto de qualquer um
       default: return 1.0;
     }
   }
@@ -272,6 +273,8 @@ class BotIA {
   static _avaliarConfronto(bot, oponente) {
     const escudoBot = bot.efeitos.escudo.ativo;
     const escudoOpo = oponente.efeitos.escudo.ativo;
+    const caveiraBot = !!(bot.efeitos.caveira && bot.efeitos.caveira.ativo);
+    const caveiraOpo = !!(oponente.efeitos.caveira && oponente.efeitos.caveira.ativo);
 
     // Escudo do oponente reflete — NUNCA atacar (exceto se temos escudo)
     if (escudoOpo && !escudoBot) return -80;
@@ -281,6 +284,10 @@ class BotIA {
 
     // Ambos com escudo: head-on nao tem efeito
     if (escudoBot && escudoOpo) return 0;
+
+    // Caveira: quem tem mata quem encosta (so o escudo, ja tratado acima, salva)
+    if (caveiraOpo && !caveiraBot) return -80;
+    if (caveiraBot && !caveiraOpo) return 60;
 
     // Sem escudos: decisao por tamanho
     const diff = bot.cobra.length - oponente.cobra.length;
@@ -482,8 +489,10 @@ class BotIA {
           }
 
           // --- Atacar corpo do oponente (cortar segmentos) ---
-          // Nao atacar se oponente tem escudo (atacante morre!)
-          if (!oponente.efeitos.escudo.ativo) {
+          // Nao atacar se oponente tem escudo ou caveira (atacante morre!)
+          const opoLetal = oponente.efeitos.escudo.ativo ||
+            !!(oponente.efeitos.caveira && oponente.efeitos.caveira.ativo);
+          if (!opoLetal) {
             for (let s = 1; s < oponente.cobra.length; s++) {
               const seg = oponente.cobra[s];
               const distSeg = Math.abs(seg.x - pos.x) + Math.abs(seg.y - pos.y);
@@ -495,7 +504,7 @@ class BotIA {
               }
             }
           } else if (distCabeca <= 4) {
-            // Oponente com escudo: FUGIR (bater no corpo dele nos mata)
+            // Oponente com escudo/caveira: FUGIR (bater no corpo dele nos mata)
             pontuacaoAtaque -= (5 - distCabeca) * 15;
           }
 

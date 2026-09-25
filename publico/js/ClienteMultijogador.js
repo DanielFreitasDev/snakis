@@ -81,6 +81,16 @@ class ClienteMultijogador {
     this.elPlacarLateral = document.getElementById('placar-lateral');
     this.elFeedEventos = document.getElementById('feed-eventos');
 
+    // Menu da partida (sair / expulsar / encerrar sala)
+    this.elBotaoMenuPartida = document.getElementById('botao-menu-partida');
+    this.elDialogoMenu = document.getElementById('dialogo-menu-partida');
+    this.elMenuSecaoDono = document.getElementById('menu-partida-dono');
+    this.elMenuJogadores = document.getElementById('menu-partida-jogadores');
+    this.elMenuErro = document.getElementById('menu-partida-erro');
+    this.elBotaoContinuarPartida = document.getElementById('botao-continuar-partida');
+    this.elBotaoSairPartida = document.getElementById('botao-sair-partida');
+    this.elBotaoEncerrarSala = document.getElementById('botao-encerrar-sala');
+
     // Resultado
     this.elRankingFinal = document.getElementById('ranking-final');
     this.elBotaoJogarNovamente = document.getElementById('botao-jogar-novamente');
@@ -135,6 +145,12 @@ class ClienteMultijogador {
 
     /** @type {number} Intensidade atual da musica ambiente (0..1) */
     this.intensidadeMusica = 0.3;
+
+    /** @type {string} Assinatura da lista de jogadores exibida no menu (evita redesenho) */
+    this.menuJogadoresCache = '';
+
+    /** @type {boolean} Se fomos nos que pedimos para encerrar a sala */
+    this.encerrandoSala = false;
 
     /* -----------------------------------------------------------------------
      * CONEXAO SOCKET.IO
@@ -232,6 +248,24 @@ class ClienteMultijogador {
       }
       Mobile.liberarGestos();
       Mobile.vibrarGameOver();
+    });
+
+    /**
+     * Evento: voce-foi-expulso
+     * O dono da sala nos removeu. O servidor ja liberou nossa sessao.
+     */
+    this.socket.on('voce-foi-expulso', () => {
+      this._voltarAoLobby('Você foi expulso da sala pelo dono.');
+    });
+
+    /**
+     * Evento: sala-encerrada
+     * O dono encerrou a sala: todos voltam ao lobby.
+     */
+    this.socket.on('sala-encerrada', () => {
+      const mensagem = this.encerrandoSala ? null : 'O dono encerrou a sala.';
+      this.encerrandoSala = false;
+      this._voltarAoLobby(mensagem);
     });
 
     /**
@@ -377,9 +411,10 @@ class ClienteMultijogador {
       controlesMobile.style.display = nome === 'jogo' ? '' : 'none';
     }
 
-    // Liberar gestos do navegador ao sair da tela de jogo
+    // Liberar gestos do navegador e fechar o menu ao sair da tela de jogo
     if (nome !== 'jogo') {
       Mobile.liberarGestos();
+      this._fecharMenuPartida();
     }
 
     // Parar renderizacao se saiu do jogo
@@ -585,6 +620,7 @@ class ClienteMultijogador {
       const statusClasse = jogador.pronto ? 'jogador-pronto' : 'jogador-aguardando';
       const indicadorBot = jogador.ehBot ? ' 🤖' : '';
       const indicadorEu = ehEu ? ' (você)' : '';
+      const indicadorDono = jogador.id === infoSala.donoId ? ' <span class="tag-dono">dono</span>' : '';
 
       if (jogador.ehBot) quantidadeBots++;
       if (!jogador.pronto) todosProntos = false;
@@ -592,7 +628,7 @@ class ClienteMultijogador {
       html += `
         <div class="jogador-item">
           <span class="jogador-cor" style="background: ${jogador.cor.principal}; box-shadow: 0 0 8px ${jogador.cor.principal};"></span>
-          <span class="jogador-nome">${escaparHtml(jogador.apelido)}${indicadorBot}${indicadorEu}</span>
+          <span class="jogador-nome">${escaparHtml(jogador.apelido)}${indicadorBot}${indicadorEu}${indicadorDono}</span>
           <span class="jogador-status ${statusClasse}">${statusTexto}</span>
         </div>
       `;
@@ -720,6 +756,7 @@ class ClienteMultijogador {
         jogador.direcao,
         {
           escudo: jogador.efeitos.escudo,
+          caveira: jogador.efeitos.caveira,
           invulneravel: jogador.invulneravel,
           velocidade: jogador.efeitos.velocidade,
           ehRei: jogador.ehRei,
@@ -760,8 +797,9 @@ class ClienteMultijogador {
 
   /**
    * Registra as mudancas de posicao de cada cobra entre estados recebidos.
-   * A duracao de cada movimento eh medida na pratica (tempo entre mudancas
-   * de cabeca), entao boosts de velocidade sao acompanhados automaticamente.
+   * A duracao de cada movimento vem da velocidade informada pelo servidor
+   * (1000 / celulas por segundo): o deslize fica constante mesmo quando o
+   * servidor alterna passos a cada 2 ou 3 ticks.
    * @param {object} estado - Estado recebido do servidor.
    * @private
    */
@@ -803,7 +841,9 @@ class ClienteMultijogador {
         registro.cabecaDe = registro.cabecaAtual;
         registro.caudaDe = registro.caudaAtual;
         registro.cresceu = jogador.cobra.length > registro.tamanhoAtual;
-        registro.duracao = Math.min(350, Math.max(60, agora - registro.inicio));
+        registro.duracao = jogador.velocidade > 0
+          ? 1000 / jogador.velocidade
+          : Math.min(350, Math.max(30, agora - registro.inicio));
       } else {
         // Teleporte (respawn/encolhimento): sem interpolacao
         registro.cabecaDe = null;
@@ -913,8 +953,15 @@ class ClienteMultijogador {
         const segs = Math.ceil(eu.efeitos.escudoTempo / 1000);
         efeitosHtml += `<div class="efeito-ativo efeito-escudo">🛡️ Escudo ${segs}s</div>`;
       }
+      if (eu.efeitos.caveira) {
+        const segs = Math.ceil(eu.efeitos.caveiraTempo / 1000);
+        efeitosHtml += `<div class="efeito-ativo efeito-caveira">💀 Caveira ${segs}s</div>`;
+      }
       this.elMultiBarraEfeitos.innerHTML = efeitosHtml;
     }
+
+    // Menu aberto acompanha quem entra/sai e troca de dono
+    if (this._menuAberto()) this._atualizarMenuPartida();
 
     // Placar lateral (ranking em tempo real, desempate por eliminacoes)
     const jogadoresOrdenados = [...estado.jogadores].sort((a, b) =>
@@ -992,6 +1039,7 @@ class ClienteMultijogador {
                 case 'velocidade': window.som.comerVelocidade(); break;
                 case 'vida': window.som.comerVida(); break;
                 case 'escudo': window.som.comerEscudo(); break;
+                case 'caveira': window.som.comerCaveira(); break;
               }
             }
             // Haptic para comida coletada pelo jogador local
@@ -1026,6 +1074,28 @@ class ClienteMultijogador {
           this._adicionarFeed(`🚪 ${evento.apelido} saiu da partida`);
           break;
 
+        case 'jogador_expulso':
+          this._adicionarFeed(`🥾 ${evento.apelido} foi expulso pelo dono`);
+          break;
+
+        case 'caveira_ativada':
+          this._adicionarFeed(evento.jogadorId === this.socket.id
+            ? '💀 Você pegou a caveira! Quem encostar em você morre!'
+            : `💀 ${evento.apelido} pegou a caveira! Não encoste!`);
+          break;
+
+        case 'caveira_matou':
+          this._adicionarFeed(`💀 ${evento.vitimaApelido} encostou na caveira de ${evento.apelido}!`);
+          if (this.particulas && evento.posicao) {
+            this.particulas.criarExplosaoGrande(
+              evento.posicao.x * tam + tam / 2,
+              evento.posicao.y * tam + tam / 2,
+              CONSTANTES.TIPOS_COMIDA.CAVEIRA.cor
+            );
+          }
+          if (window.som) window.som.eliminacao();
+          break;
+
         case 'jogador_desconectou':
           this._adicionarFeed(`📡 ${evento.apelido} perdeu a conexão...`);
           break;
@@ -1041,7 +1111,7 @@ class ClienteMultijogador {
           break;
 
         case 'arena_encolheu':
-          this._adicionarFeed('🔥 Arena encolheu! Zona menor!');
+          this._adicionarFeed('🔥 Arena encolheu! Cobras mais rápidas!');
           // Musica acompanha a tensao da arena apertando
           this.intensidadeMusica = Math.min(1, this.intensidadeMusica + 0.22);
           if (window.som) window.som.definirIntensidadeMusica(this.intensidadeMusica);
@@ -1156,6 +1226,15 @@ class ClienteMultijogador {
     document.addEventListener('keydown', (evento) => {
       if (this.telaAtiva !== 'jogo') return;
 
+      // Com o menu aberto, o teclado eh do menu (Esc fecha nativamente)
+      if (this._menuAberto()) return;
+
+      if (evento.key === 'Escape') {
+        evento.preventDefault();
+        this._abrirMenuPartida();
+        return;
+      }
+
       const mapa = {
         ArrowUp: 'cima', ArrowDown: 'baixo', ArrowLeft: 'esquerda', ArrowRight: 'direita',
         w: 'cima', W: 'cima', s: 'baixo', S: 'baixo',
@@ -1174,7 +1253,7 @@ class ClienteMultijogador {
     botoesDirecao.forEach((botao) => {
       const handler = (e) => {
         e.preventDefault();
-        if (this.telaAtiva !== 'jogo') return;
+        if (this.telaAtiva !== 'jogo' || this._menuAberto()) return;
         const direcao = botao.getAttribute('data-direcao');
         this.socket.emit('mudar-direcao', direcao);
       };
@@ -1192,7 +1271,7 @@ class ClienteMultijogador {
     }, { passive: true });
 
     this.canvasMulti.addEventListener('touchend', (e) => {
-      if (this.telaAtiva !== 'jogo') return;
+      if (this.telaAtiva !== 'jogo' || this._menuAberto()) return;
       const dx = e.changedTouches[0].clientX - inicioX;
       const dy = e.changedTouches[0].clientY - inicioY;
 
@@ -1222,7 +1301,7 @@ class ClienteMultijogador {
     // Swipe na tela inteira (controle principal mobile)
     Mobile.configurarSwipeGlobal(
       (direcao) => this.socket.emit('mudar-direcao', direcao),
-      () => this.telaAtiva === 'jogo'
+      () => this.telaAtiva === 'jogo' && !this._menuAberto()
     );
 
     // Reajustar canvas ao rotacionar/redimensionar o dispositivo
@@ -1305,12 +1384,7 @@ class ClienteMultijogador {
     // Sala: Sair
     this.elBotaoSairSala.addEventListener('click', () => {
       this.socket.emit('sair-sala');
-      this.codigoSala = null;
-      this.estouPronto = false;
-      this.elBotaoPronto.textContent = 'Estou Pronto!';
-      this.elBotaoPronto.classList.remove('pronto-ativo');
-      this._mostrarTela('lobby');
-      this._atualizarListaSalas();
+      this._voltarAoLobby();
     });
 
     // Resultado: Jogar novamente (revanche na MESMA sala, com os mesmos jogadores)
@@ -1320,15 +1394,183 @@ class ClienteMultijogador {
     if (this.elBotaoSairLobby) {
       this.elBotaoSairLobby.addEventListener('click', () => {
         this.socket.emit('sair-sala');
-        this.codigoSala = null;
-        this.estouPronto = false;
-        this.ultimoEstado = null;
-        this.elBotaoPronto.textContent = 'Estou Pronto!';
-        this.elBotaoPronto.classList.remove('pronto-ativo');
-        this._mostrarTela('lobby');
-        this._atualizarListaSalas();
+        this._voltarAoLobby();
       });
     }
+
+    // Menu da partida
+    this.elBotaoMenuPartida.addEventListener('click', () => this._abrirMenuPartida());
+    this.elBotaoContinuarPartida.addEventListener('click', () => this._fecharMenuPartida());
+
+    this.elBotaoSairPartida.addEventListener('click', () => {
+      this._confirmarAcao(this.elBotaoSairPartida, 'Sair mesmo? Toque de novo', () => {
+        this.socket.emit('sair-sala');
+        this._voltarAoLobby();
+      });
+    });
+
+    this.elBotaoEncerrarSala.addEventListener('click', () => {
+      this._confirmarAcao(this.elBotaoEncerrarSala, 'Encerrar para todos? Toque de novo', () => {
+        this.encerrandoSala = true;
+        this.socket.emit('encerrar-sala', (resposta) => {
+          if (resposta && resposta.sucesso) return; // 'sala-encerrada' leva ao lobby
+          this.encerrandoSala = false;
+          this._mostrarErroMenu((resposta && resposta.erro) || 'Não foi possível encerrar a sala.');
+        });
+      });
+    });
+
+    // Expulsar: um listener so para a lista inteira (delegacao de eventos)
+    this.elMenuJogadores.addEventListener('click', (e) => {
+      const botao = e.target.closest('.botao-expulsar');
+      if (!botao) return;
+      this._confirmarAcao(botao, 'Confirmar', () => {
+        botao.disabled = true;
+        this.socket.emit('expulsar-jogador', botao.dataset.id, (resposta) => {
+          if (resposta && resposta.sucesso) return; // proximo estado atualiza a lista
+          botao.disabled = false;
+          this._mostrarErroMenu((resposta && resposta.erro) || 'Não foi possível expulsar.');
+        });
+      });
+    });
+
+    // Fechar o menu (Esc ou botao) devolve o foco ao botao que o abriu
+    this.elDialogoMenu.addEventListener('close', () => {
+      if (this.telaAtiva === 'jogo') this.elBotaoMenuPartida.focus();
+    });
+  }
+
+  /* =========================================================================
+   * MENU DA PARTIDA
+   * Todos podem sair; o dono tambem pode expulsar jogadores e encerrar a
+   * sala. O jogo nao pausa: o servidor continua rodando a partida.
+   * ======================================================================= */
+
+  /**
+   * @returns {boolean} Se o menu da partida esta aberto.
+   * @private
+   */
+  _menuAberto() {
+    return !!(this.elDialogoMenu && this.elDialogoMenu.open);
+  }
+
+  /**
+   * Abre o menu da partida como dialogo modal (prende o foco nele).
+   * @private
+   */
+  _abrirMenuPartida() {
+    if (this.telaAtiva !== 'jogo' || this._menuAberto()) return;
+    this.menuJogadoresCache = '';
+    this.elMenuErro.hidden = true;
+    this._atualizarMenuPartida();
+    this.elDialogoMenu.showModal();
+    this.elBotaoContinuarPartida.focus();
+  }
+
+  /**
+   * Fecha o menu da partida, se aberto.
+   * @private
+   */
+  _fecharMenuPartida() {
+    if (this._menuAberto()) this.elDialogoMenu.close();
+  }
+
+  /**
+   * Mostra as opcoes de dono (lista de expulsao e encerrar sala) apenas
+   * para o dono atual, e redesenha a lista quando os jogadores mudam.
+   * @private
+   */
+  _atualizarMenuPartida() {
+    const estado = this.ultimoEstado;
+    const souDono = !!estado && estado.donoId === this.socket.id;
+
+    this.elMenuSecaoDono.hidden = !souDono;
+    this.elBotaoEncerrarSala.hidden = !souDono;
+    if (!souDono) return;
+
+    const outros = estado.jogadores.filter(j => j.id !== this.socket.id);
+    const assinatura = outros.map(j => `${j.id}:${j.desconectado ? 1 : 0}`).join('|');
+    if (assinatura === this.menuJogadoresCache) return;
+    this.menuJogadoresCache = assinatura;
+
+    if (outros.length === 0) {
+      this.elMenuJogadores.innerHTML = '<li class="menu-partida-vazio">Ninguém para expulsar.</li>';
+      return;
+    }
+
+    this.elMenuJogadores.innerHTML = outros.map((j) => {
+      const nome = escaparHtml(j.apelido);
+      const tags = `${j.ehBot ? ' 🤖' : ''}${j.desconectado ? ' 📡' : ''}`;
+      return `
+        <li class="menu-partida-jogador">
+          <span class="placar-jogador-cor" style="background: ${j.cor.principal};"></span>
+          <span class="menu-partida-nome">${nome}${tags}</span>
+          <button class="botao-expulsar" type="button" data-id="${escaparHtml(j.id)}"
+                  aria-label="Expulsar ${nome}">Expulsar</button>
+        </li>
+      `;
+    }).join('');
+  }
+
+  /**
+   * Confirmacao em dois toques para acoes destrutivas: o primeiro toque
+   * troca o texto do botao; o segundo (em ate 3 s) executa a acao.
+   * @param {HTMLButtonElement} botao - Botao da acao.
+   * @param {string} textoConfirmar - Texto exibido aguardando confirmacao.
+   * @param {Function} acao - Executada no segundo toque.
+   * @private
+   */
+  _confirmarAcao(botao, textoConfirmar, acao) {
+    if (botao.dataset.confirmando === '1') {
+      clearTimeout(botao._timerConfirmacao);
+      botao.dataset.confirmando = '';
+      botao.textContent = botao.dataset.textoOriginal;
+      botao.classList.remove('confirmando');
+      acao();
+      return;
+    }
+
+    botao.dataset.textoOriginal = botao.textContent;
+    botao.dataset.confirmando = '1';
+    botao.textContent = textoConfirmar;
+    botao.classList.add('confirmando');
+    botao._timerConfirmacao = setTimeout(() => {
+      botao.dataset.confirmando = '';
+      botao.textContent = botao.dataset.textoOriginal;
+      botao.classList.remove('confirmando');
+    }, 3000);
+  }
+
+  /**
+   * Exibe uma mensagem de erro dentro do menu da partida.
+   * @param {string} mensagem - Texto do erro.
+   * @private
+   */
+  _mostrarErroMenu(mensagem) {
+    this.elMenuErro.textContent = mensagem;
+    this.elMenuErro.hidden = false;
+  }
+
+  /**
+   * Volta ao lobby limpando o estado da sala/partida. Usado ao sair,
+   * ao ser expulso e quando o dono encerra a sala.
+   * @param {string|null} [mensagem] - Aviso a exibir no lobby.
+   * @private
+   */
+  _voltarAoLobby(mensagem = null) {
+    if (window.som) window.som.pararMusica();
+
+    this.codigoSala = null;
+    this.estouPronto = false;
+    this.ultimoEstado = null;
+    this.aguardandoReconexao = false;
+    this._esconderOverlayReconexao();
+    this.elBotaoPronto.textContent = 'Estou Pronto!';
+    this.elBotaoPronto.classList.remove('pronto-ativo');
+
+    this._mostrarTela('lobby');
+    this._atualizarListaSalas();
+    if (mensagem) this._exibirErro(mensagem);
   }
 }
 

@@ -97,6 +97,12 @@ class SalaDeJogo {
     /** @type {boolean} Se a arena esta atualmente encolhendo */
     this.encolhendo = false;
 
+    /** @type {number} Velocidade base atual das cobras (celulas/s); sobe a cada encolhimento */
+    this.velocidadeBase = CONSTANTES.MULTI.VELOCIDADE_INICIAL;
+
+    /** @type {string|null} ID do dono da sala (quem criou); pode expulsar e encerrar */
+    this.donoId = null;
+
     /* --- Callbacks configurados pelo servidor --- */
 
     /** @type {Function|null} Chamado com o ranking final ao terminar a partida */
@@ -171,33 +177,34 @@ class SalaDeJogo {
       filaDeDirecoes: [],
       pontuacao: 0,
       vidas: CONSTANTES.COBRA.VIDAS_INICIAIS,
-      efeitos: {
-        velocidade: { ativo: false, tempoRestante: 0 },
-        escudo: { ativo: false, tempoRestante: 0 },
-      },
+      efeitos: this._novosEfeitos(),
       vivo: true,
       invulneravel: false,
       tempoInvulneravel: 0,
-      contadorMovimento: 0,
-      velocidadeAtual: CONSTANTES.COBRA.VELOCIDADE_BASE,
+      progressoMovimento: 0, // Fracao de celula acumulada ate o proximo passo
       crescimento: 0,     // Segmentos pendentes para crescer
       eliminacoes: 0,     // Quantidade de jogadores eliminados
     });
+
+    // Quem cria a sala (primeiro humano) vira o dono
+    if (!this.donoId) this.donoId = socketId;
   }
 
   /**
    * Remove um jogador da sala e verifica se o jogo deve ser finalizado.
    * @param {string} socketId - ID do socket do jogador a remover.
+   * @param {string} [motivo='saiu'] - 'saiu' | 'expulso' (muda o aviso no feed).
    */
-  removerJogador(socketId) {
+  removerJogador(socketId, motivo = 'saiu') {
     const jogador = this.jogadores.get(socketId);
     this.jogadores.delete(socketId);
+    this._garantirDono();
 
     // Se a partida esta em andamento, avisar os demais e verificar fim de jogo
     if (this.estado === 'jogando') {
       if (jogador) {
         this.eventosPendentes.push({
-          tipo: 'jogador_saiu',
+          tipo: motivo === 'expulso' ? 'jogador_expulso' : 'jogador_saiu',
           apelido: jogador.apelido,
         });
       }
@@ -285,6 +292,7 @@ class SalaDeJogo {
     this.jogadores.delete(socketIdAntigo);
     jogador.id = novoSocketId;
     this.jogadores.set(novoSocketId, jogador);
+    if (this.donoId === socketIdAntigo) this.donoId = novoSocketId;
 
     if (jogador.desconectado) {
       jogador.desconectado = false;
@@ -339,6 +347,7 @@ class SalaDeJogo {
     }
 
     if (!removeuAlguem) return false;
+    this._garantirDono();
 
     // Sem nenhum humano restante (nem em graca): sala nao tem mais motivo de existir
     if (this.obterQuantidadeHumanos() === 0) {
@@ -354,6 +363,60 @@ class SalaDeJogo {
     }
 
     return false;
+  }
+
+  /* =========================================================================
+   * DONO DA SALA
+   * O dono eh quem criou a sala. So ele pode expulsar jogadores e
+   * encerrar a sala. Se ele sair de vez, o cargo passa ao proximo humano.
+   * ======================================================================= */
+
+  /**
+   * Verifica se um socket eh o dono da sala.
+   * @param {string} socketId - ID do socket.
+   * @returns {boolean}
+   */
+  ehDono(socketId) {
+    return !!socketId && this.donoId === socketId;
+  }
+
+  /**
+   * Garante que o dono ainda esta na sala; se nao estiver, promove o
+   * proximo humano (de preferencia um conectado). Bots nunca sao donos.
+   * @private
+   */
+  _garantirDono() {
+    const atual = this.jogadores.get(this.donoId);
+    if (atual && !atual.ehBot) return;
+
+    const humanos = [...this.jogadores.values()].filter(j => !j.ehBot);
+    const proximo = humanos.find(j => !j.desconectado) || humanos[0];
+    this.donoId = proximo ? proximo.id : null;
+  }
+
+  /**
+   * Retira um jogador (humano ou bot) da sala por ordem do dono.
+   * Nao cuida do socket do expulso — isso eh papel do servidor.
+   * @param {string} solicitanteId - Socket de quem pediu a expulsao.
+   * @param {string} alvoId - ID do jogador a expulsar.
+   * @returns {{sucesso: boolean, erro?: string, jogador?: object}}
+   */
+  expulsarJogador(solicitanteId, alvoId) {
+    if (!this.ehDono(solicitanteId)) {
+      return { sucesso: false, erro: 'Só o dono da sala pode expulsar jogadores.' };
+    }
+    if (typeof alvoId !== 'string' || alvoId === solicitanteId) {
+      return { sucesso: false, erro: 'Jogador inválido.' };
+    }
+
+    const jogador = this.jogadores.get(alvoId);
+    if (!jogador) return { sucesso: false, erro: 'Jogador não está mais na sala.' };
+
+    // A cobra sai do tabuleiro deixando comida, como em uma morte
+    if (this.estado === 'jogando') this._droparComidaMorte(jogador.cobra);
+
+    this.removerJogador(alvoId, 'expulso');
+    return { sucesso: true, jogador };
   }
 
   /**
@@ -421,15 +484,11 @@ class SalaDeJogo {
       filaDeDirecoes: [],
       pontuacao: 0,
       vidas: CONSTANTES.COBRA.VIDAS_INICIAIS,
-      efeitos: {
-        velocidade: { ativo: false, tempoRestante: 0 },
-        escudo: { ativo: false, tempoRestante: 0 },
-      },
+      efeitos: this._novosEfeitos(),
       vivo: true,
       invulneravel: false,
       tempoInvulneravel: 0,
-      contadorMovimento: 0,
-      velocidadeAtual: CONSTANTES.COBRA.VELOCIDADE_BASE,
+      progressoMovimento: 0, // Fracao de celula acumulada ate o proximo passo
       crescimento: 0,
       eliminacoes: 0,
     });
@@ -530,6 +589,7 @@ class SalaDeJogo {
     this.encolhimentosFeitos = 0;
     this.pausaEncolhimento = 0;
     this.encolhendo = false;
+    this.velocidadeBase = CONSTANTES.MULTI.VELOCIDADE_INICIAL;
 
     // Distribuir jogadores em posicoes espalhadas pelo mapa
     const posicoes = this._calcularPosicoesIniciais();
@@ -594,6 +654,7 @@ class SalaDeJogo {
         if (this.aoRemoverJogador) this.aoRemoverJogador(jogador);
       }
     }
+    this._garantirDono();
   }
 
   /**
@@ -633,6 +694,7 @@ class SalaDeJogo {
         if (this.aoRemoverJogador) this.aoRemoverJogador(jogador);
       }
     }
+    this._garantirDono();
 
     for (const jogador of this.jogadores.values()) {
       jogador.pronto = jogador.ehBot; // Bots continuam prontos; humanos reconfirmam
@@ -809,19 +871,38 @@ class SalaDeJogo {
    * ======================================================================= */
 
   /**
+   * Velocidade atual de uma cobra em celulas por segundo: a base da
+   * arena (que sobe a cada encolhimento), multiplicada pelo raio se
+   * ativo. Limitada a 1 celula por tick para nenhuma colisao ser pulada.
+   * @param {object} jogador - Dados do jogador.
+   * @returns {number} Celulas por segundo.
+   * @private
+   */
+  _velocidadeDe(jogador) {
+    const multi = CONSTANTES.MULTI;
+    const velocidade = jogador.efeitos.velocidade.ativo
+      ? this.velocidadeBase * multi.MULTIPLICADOR_RAIO
+      : this.velocidadeBase;
+    return Math.min(velocidade, multi.TICKS_POR_SEGUNDO);
+  }
+
+  /**
    * Move cada cobra viva de acordo com sua velocidade e direcao.
-   * O sistema de velocidade usa um contador de ticks: a cobra so
-   * se move quando o contador atinge o valor de velocidadeAtual.
+   * Cada tick soma "velocidade / ticks por segundo" ao progresso da
+   * cobra; quando o progresso completa 1 celula, ela anda. Isso permite
+   * velocidades fracionarias (ex.: 7 celulas/s) com o tick fixo.
    * @private
    */
   _moverCobras() {
+    const ticksPorSegundo = CONSTANTES.MULTI.TICKS_POR_SEGUNDO;
+
     for (const jogador of this.jogadores.values()) {
       if (!jogador.vivo) continue;
 
-      // Sistema de velocidade por contagem de ticks
-      jogador.contadorMovimento++;
-      if (jogador.contadorMovimento < jogador.velocidadeAtual) continue;
-      jogador.contadorMovimento = 0;
+      // Tolerancia: somar 1/6 seis vezes da 0.9999... em ponto flutuante
+      jogador.progressoMovimento += this._velocidadeDe(jogador) / ticksPorSegundo;
+      if (jogador.progressoMovimento < 1 - 1e-9) continue;
+      jogador.progressoMovimento = Math.max(0, jogador.progressoMovimento - 1);
 
       // Processar proximo input da fila de direcoes
       if (jogador.filaDeDirecoes.length > 0) {
@@ -914,7 +995,6 @@ class SalaDeJogo {
         // Ativar boost de velocidade
         jogador.efeitos.velocidade.ativo = true;
         jogador.efeitos.velocidade.tempoRestante += tipos.VELOCIDADE.duracao;
-        jogador.velocidadeAtual = CONSTANTES.COBRA.VELOCIDADE_RAPIDA;
         break;
 
       case 'dourada':
@@ -931,6 +1011,17 @@ class SalaDeJogo {
         // Ativar escudo protetor
         jogador.efeitos.escudo.ativo = true;
         jogador.efeitos.escudo.tempoRestante += tipos.ESCUDO.duracao;
+        break;
+
+      case 'caveira':
+        // Corpo letal: quem encostar morre na hora
+        jogador.efeitos.caveira.ativo = true;
+        jogador.efeitos.caveira.tempoRestante += tipos.CAVEIRA.duracao;
+        this.eventosRecentes.push({
+          tipo: 'caveira_ativada',
+          jogadorId: jogador.id,
+          apelido: jogador.apelido,
+        });
         break;
     }
   }
@@ -989,6 +1080,10 @@ class SalaDeJogo {
    *   - A cobra menor morre
    *   - Se tamanhos iguais: ambas perdem um segmento
    *
+   * - Caveira (corpo letal): qualquer contato com quem esta com a
+   *   caveira mata o outro na hora — encostar no corpo dela, bater de
+   *   frente ou ser tocado pela cabeca dela. O escudo protege (e reflete).
+   *
    * @private
    */
   _verificarColisaoEntreCobras() {
@@ -1025,6 +1120,18 @@ class SalaDeJogo {
             // Se o alvo tem escudo, o atacante eh que sofre
             if (alvo.efeitos.escudo.ativo) {
               this._processarMorte(atacante, 'escudo_refletido');
+              break;
+            }
+
+            // Alvo com caveira: encostou, morreu (so o escudo salva)
+            if (alvo.efeitos.caveira.ativo) {
+              if (!atacante.efeitos.escudo.ativo) this._matarPorCaveira(alvo, atacante);
+              break;
+            }
+
+            // Atacante com caveira: em vez de cortar segmentos, mata o alvo
+            if (atacante.efeitos.caveira.ativo) {
+              this._matarPorCaveira(atacante, alvo);
               break;
             }
 
@@ -1093,6 +1200,18 @@ class SalaDeJogo {
       return;
     }
 
+    // Caveira de um lado so: o outro morre. Ambos com caveira: regra normal
+    const caveiraA = jogadorA.efeitos.caveira.ativo;
+    const caveiraB = jogadorB.efeitos.caveira.ativo;
+    if (caveiraA && !caveiraB) {
+      this._matarPorCaveira(jogadorA, jogadorB);
+      return;
+    }
+    if (caveiraB && !caveiraA) {
+      this._matarPorCaveira(jogadorB, jogadorA);
+      return;
+    }
+
     const tamanhoA = jogadorA.cobra.length;
     const tamanhoB = jogadorB.cobra.length;
 
@@ -1116,6 +1235,31 @@ class SalaDeJogo {
       if (jogadorA.cobra.length === 0) this._processarMorte(jogadorA, 'colisao_cabeca');
       if (jogadorB.cobra.length === 0) this._processarMorte(jogadorB, 'colisao_cabeca');
     }
+  }
+
+  /**
+   * Mata na hora quem encostou em uma cobra com caveira, creditando a
+   * eliminacao ao dono da caveira. Invulneraveis (recem-renascidos) escapam.
+   * @param {object} dono - Jogador com a caveira ativa.
+   * @param {object} vitima - Jogador que encostou.
+   * @private
+   */
+  _matarPorCaveira(dono, vitima) {
+    if (!vitima.vivo || vitima.invulneravel || vitima.cobra.length === 0) return;
+
+    dono.pontuacao += CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+    dono.eliminacoes++;
+
+    this.eventosRecentes.push({
+      tipo: 'caveira_matou',
+      jogadorId: dono.id,
+      apelido: dono.apelido,
+      vitimaId: vitima.id,
+      vitimaApelido: vitima.apelido,
+      posicao: { ...vitima.cobra[0] },
+    });
+
+    this._processarMorte(vitima, 'caveira');
   }
 
   /**
@@ -1175,15 +1319,11 @@ class SalaDeJogo {
 
     jogador.direcao = direcaoAleatoria;
     jogador.filaDeDirecoes = [];
-    jogador.contadorMovimento = 0;
+    jogador.progressoMovimento = 0;
     jogador.crescimento = 0;
     jogador.invulneravel = true;
     jogador.tempoInvulneravel = CONSTANTES.MULTI.TEMPO_INVULNERAVEL;
-    jogador.velocidadeAtual = CONSTANTES.COBRA.VELOCIDADE_BASE;
-    jogador.efeitos = {
-      velocidade: { ativo: false, tempoRestante: 0 },
-      escudo: { ativo: false, tempoRestante: 0 },
-    };
+    jogador.efeitos = this._novosEfeitos();
 
     // Criar cobra com tamanho inicial
     const vetor = CONSTANTES.DIRECOES[direcaoAleatoria];
@@ -1271,6 +1411,10 @@ class SalaDeJogo {
    * @private
    */
   _sortearTipoComida() {
+    // Caveira: chance propria e no maximo uma no mapa por vez
+    const temCaveira = this.comidas.some(c => c.tipo === 'caveira');
+    if (!temCaveira && Math.random() < CONSTANTES.MULTI.CHANCE_CAVEIRA) return 'CAVEIRA';
+
     const sorteio = Math.random();
     let acumulado = 0;
 
@@ -1427,7 +1571,6 @@ class SalaDeJogo {
         if (jogador.efeitos.velocidade.tempoRestante <= 0) {
           jogador.efeitos.velocidade.ativo = false;
           jogador.efeitos.velocidade.tempoRestante = 0;
-          jogador.velocidadeAtual = CONSTANTES.COBRA.VELOCIDADE_BASE;
         }
       }
 
@@ -1437,6 +1580,15 @@ class SalaDeJogo {
         if (jogador.efeitos.escudo.tempoRestante <= 0) {
           jogador.efeitos.escudo.ativo = false;
           jogador.efeitos.escudo.tempoRestante = 0;
+        }
+      }
+
+      // Efeito: caveira (corpo letal)
+      if (jogador.efeitos.caveira.ativo) {
+        jogador.efeitos.caveira.tempoRestante -= msPerTick;
+        if (jogador.efeitos.caveira.tempoRestante <= 0) {
+          jogador.efeitos.caveira.ativo = false;
+          jogador.efeitos.caveira.tempoRestante = 0;
         }
       }
     }
@@ -1467,6 +1619,7 @@ class SalaDeJogo {
       estado: this.estado,
       jogadores: listaJogadores,
       maxJogadores: this.maxJogadores,
+      donoId: this.donoId,
       dificuldadeBots: this.dificuldadeBots,
       tempoPartida: this.tempoPartida,
     };
@@ -1506,9 +1659,12 @@ class SalaDeJogo {
         efeitos: {
           velocidade: jogador.efeitos.velocidade.ativo,
           escudo: jogador.efeitos.escudo.ativo,
+          caveira: jogador.efeitos.caveira.ativo,
           velocidadeTempo: jogador.efeitos.velocidade.tempoRestante,
           escudoTempo: jogador.efeitos.escudo.tempoRestante,
+          caveiraTempo: jogador.efeitos.caveira.tempoRestante,
         },
+        velocidade: this._velocidadeDe(jogador), // celulas/s (suaviza a interpolacao no cliente)
         ehRei: jogador.id === idRei,
         eliminacoes: jogador.eliminacoes,
         ehBot: jogador.ehBot,
@@ -1530,6 +1686,8 @@ class SalaDeJogo {
       tick: this.tickAtual,
       bordaArena: this.bordaArena,
       encolhendo: this.encolhendo,
+      velocidadeBase: this.velocidadeBase,
+      donoId: this.donoId,
       contagem: this.ticksContagem > 0
         ? Math.ceil(this.ticksContagem / CONSTANTES.MULTI.TICKS_POR_SEGUNDO)
         : 0,
@@ -1560,6 +1718,13 @@ class SalaDeJogo {
       this.bordaFinal * (this.encolhimentosFeitos / this.totalEncolhimentos)
     );
     this.encolhendo = false;
+
+    // Arena menor, cobras mais rapidas (o raio multiplica por cima disso)
+    const multi = CONSTANTES.MULTI;
+    this.velocidadeBase = Math.min(
+      this.velocidadeBase * multi.ACELERACAO_POR_ENCOLHIMENTO,
+      multi.VELOCIDADE_MAXIMA_BASE
+    );
 
     // Remover comidas fora dos novos limites
     this.comidas = this.comidas.filter(c =>
@@ -1594,12 +1759,26 @@ class SalaDeJogo {
     this.eventosRecentes.push({
       tipo: 'arena_encolheu',
       bordaArena: this.bordaArena,
+      velocidadeBase: this.velocidadeBase,
     });
   }
 
   /* =========================================================================
    * UTILITARIOS INTERNOS
    * ======================================================================= */
+
+  /**
+   * Cria o objeto de efeitos temporarios zerado de uma cobra.
+   * @returns {object} { velocidade, escudo, caveira }.
+   * @private
+   */
+  _novosEfeitos() {
+    return {
+      velocidade: { ativo: false, tempoRestante: 0 },
+      escudo: { ativo: false, tempoRestante: 0 },
+      caveira: { ativo: false, tempoRestante: 0 },
+    };
+  }
 
   /**
    * Inicializa a cobra de um jogador em uma posicao especifica.
@@ -1613,16 +1792,12 @@ class SalaDeJogo {
     jogador.vidas = CONSTANTES.COBRA.VIDAS_INICIAIS;
     jogador.direcao = pos.direcao;
     jogador.filaDeDirecoes = [];
-    jogador.contadorMovimento = 0;
-    jogador.velocidadeAtual = CONSTANTES.COBRA.VELOCIDADE_BASE;
+    jogador.progressoMovimento = 0;
     jogador.crescimento = 0;
     jogador.eliminacoes = 0;
     jogador.invulneravel = true;
     jogador.tempoInvulneravel = CONSTANTES.MULTI.TEMPO_INVULNERAVEL;
-    jogador.efeitos = {
-      velocidade: { ativo: false, tempoRestante: 0 },
-      escudo: { ativo: false, tempoRestante: 0 },
-    };
+    jogador.efeitos = this._novosEfeitos();
 
     // Criar segmentos da cobra na posicao indicada
     const vetor = CONSTANTES.DIRECOES[pos.direcao];

@@ -107,7 +107,7 @@ function destruirSala(codigo) {
     if (codigoDaSala === codigo) tokenParaSala.delete(token);
   }
 
-  console.log(`[Sala] Sala ${codigo} removida (vazia)`);
+  console.log(`[Sala] Sala ${codigo} removida`);
 }
 
 /**
@@ -501,6 +501,71 @@ io.on('connection', (socket) => {
   registrar('obter-ranking', (callback) => {
     const responder = callbackSeguro(callback);
     responder(rankingPersistente.obterTop(10));
+  });
+
+  /* -----------------------------------------------------------------------
+   * SALA: Poderes do dono (expulsar jogador e encerrar a sala)
+   * --------------------------------------------------------------------- */
+
+  /**
+   * O dono expulsa um jogador (humano ou bot). O expulso sai da sala em
+   * definitivo: o token de sessao eh liberado, entao ele nao consegue
+   * "reconectar" de volta na partida.
+   */
+  registrar('expulsar-jogador', (jogadorId, callback) => {
+    const responder = callbackSeguro(callback);
+    const codigo = jogadorParaSala.get(socket.id);
+    const sala = codigo ? salas.get(codigo) : null;
+    if (!sala) return responder({ sucesso: false, erro: 'Você não está em uma sala.' });
+
+    const resultado = sala.expulsarJogador(socket.id, jogadorId);
+    if (!resultado.sucesso) return responder(resultado);
+
+    const expulso = resultado.jogador;
+    if (expulso.token) tokenParaSala.delete(expulso.token);
+
+    // Humano conectado: tirar o socket da sala e avisa-lo
+    if (!expulso.ehBot) {
+      jogadorParaSala.delete(expulso.id);
+      const socketExpulso = io.sockets.sockets.get(expulso.id);
+      if (socketExpulso) {
+        socketExpulso.leave(codigo);
+        socketExpulso.emit('voce-foi-expulso');
+      }
+    }
+
+    console.log(`[Sala] "${expulso.apelido}" foi expulso da sala ${codigo}`);
+    responder({ sucesso: true });
+    io.to(codigo).emit('sala-atualizada', sala.obterInfoSala());
+  });
+
+  /**
+   * O dono encerra a sala: todos voltam ao lobby e a partida em
+   * andamento eh descartada (nao entra no Hall da Fama).
+   */
+  registrar('encerrar-sala', (callback) => {
+    const responder = callbackSeguro(callback);
+    const codigo = jogadorParaSala.get(socket.id);
+    const sala = codigo ? salas.get(codigo) : null;
+    if (!sala) return responder({ sucesso: false, erro: 'Você não está em uma sala.' });
+
+    if (!sala.ehDono(socket.id)) {
+      return responder({ sucesso: false, erro: 'Só o dono da sala pode encerrá-la.' });
+    }
+
+    // Avisar todos (inclusive o dono) antes de desmontar a sala
+    io.to(codigo).emit('sala-encerrada');
+
+    for (const jogador of sala.jogadores.values()) {
+      if (jogador.ehBot) continue;
+      jogadorParaSala.delete(jogador.id);
+      const socketJogador = io.sockets.sockets.get(jogador.id);
+      if (socketJogador) socketJogador.leave(codigo);
+    }
+
+    destruirSala(codigo);
+    console.log(`[Sala] Sala ${codigo} encerrada pelo dono`);
+    responder({ sucesso: true });
   });
 
   /* -----------------------------------------------------------------------

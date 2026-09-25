@@ -29,8 +29,6 @@ const CONSTANTES = {
   COBRA: {
     TAMANHO_INICIAL: 4,     // Quantidade de segmentos ao nascer
     VIDAS_INICIAIS: 3,      // Vidas no inicio de cada partida
-    VELOCIDADE_BASE: 4,     // Ticks entre cada movimento (maior = mais lento)
-    VELOCIDADE_RAPIDA: 2,   // Ticks entre movimentos com boost de velocidade
   },
 
   /* =========================================================================
@@ -92,6 +90,21 @@ const CONSTANTES = {
       probabilidade: 0.10,
       descricao: 'Escudo',
     },
+    /**
+     * Caveira (so no multiplayer): por alguns segundos, qualquer cobra
+     * que encostar em quem comeu morre na hora. Probabilidade 0 aqui para
+     * nao aparecer no solo; no multiplayer a chance vem de MULTI.CHANCE_CAVEIRA.
+     */
+    CAVEIRA: {
+      tipo: 'caveira',
+      cor: '#b04dff',
+      brilho: '#6a1fb0',
+      pontos: 20,
+      segmentos: 0,
+      duracao: 6000,
+      probabilidade: 0,
+      descricao: 'Caveira',
+    },
   },
 
   /* =========================================================================
@@ -133,10 +146,22 @@ const CONSTANTES = {
     MAX_JOGADORES: 6,
     MIN_JOGADORES_PARA_INICIAR: 2,
     QUANTIDADE_COMIDA: 10,
-    TICKS_POR_SEGUNDO: 20,
+    TICKS_POR_SEGUNDO: 30,      // Tambem eh o teto de velocidade (1 celula por tick)
     TEMPO_INVULNERAVEL: 3000,   // ms de invulnerabilidade apos respawn
     TEMPO_PARTIDA: 180,         // segundos (3 minutos por partida)
     TEMPO_RECONEXAO: 60,        // segundos que um jogador caido pode voltar a partida
+    CHANCE_CAVEIRA: 0.06,       // Chance de cada comida nova ser uma caveira (max. 1 no mapa)
+
+    /*
+     * Velocidade das cobras em celulas por segundo. A cada encolhimento
+     * da arena a velocidade base eh multiplicada, e o raio multiplica
+     * por cima da velocidade atual. Nenhuma cobra passa de 1 celula por
+     * tick (TICKS_POR_SEGUNDO), para nao "pular" celulas nas colisoes.
+     */
+    VELOCIDADE_INICIAL: 5,          // celulas/s no inicio da partida
+    ACELERACAO_POR_ENCOLHIMENTO: 1.4, // x1.4 a cada encolhimento da arena
+    VELOCIDADE_MAXIMA_BASE: 16,     // teto da velocidade sem raio
+    MULTIPLICADOR_RAIO: 2.5,        // raio = velocidade atual x 2.5
   },
 
   /* =========================================================================

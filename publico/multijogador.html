@@ -162,6 +162,8 @@
     <!-- HUD do jogo multiplayer -->
     <div class="hud-multi">
       <div class="hud-esquerda">
+        <button id="botao-menu-partida" class="botao-menu-partida" type="button"
+                aria-haspopup="dialog" aria-label="Abrir menu da partida" title="Menu da partida (Esc)">☰</button>
         <div class="hud-item">
           <span class="hud-label">Tempo</span>
           <span id="multi-tempo" class="hud-valor hud-tempo">3:00</span>
@@ -194,6 +196,27 @@
 
     <!-- Feed de eventos (eliminacoes, etc) -->
     <div id="feed-eventos" class="feed-eventos"></div>
+
+    <!-- Menu da partida: sair; para o dono, expulsar jogador e encerrar a sala -->
+    <dialog id="dialogo-menu-partida" class="dialogo-menu-partida" aria-labelledby="menu-partida-titulo">
+      <div class="menu-partida-conteudo">
+        <h2 id="menu-partida-titulo" class="menu-partida-titulo">Menu da partida</h2>
+        <p class="menu-partida-aviso">A partida continua rolando enquanto o menu está aberto.</p>
+
+        <section id="menu-partida-dono" class="menu-partida-secao" hidden>
+          <h3 class="menu-partida-subtitulo">Expulsar jogador</h3>
+          <ul id="menu-partida-jogadores" class="menu-partida-jogadores"></ul>
+        </section>
+
+        <p id="menu-partida-erro" class="menu-partida-erro" role="alert" hidden></p>
+
+        <div class="menu-partida-acoes">
+          <button id="botao-continuar-partida" class="botao-acao botao-iniciar" type="button">Continuar jogando</button>
+          <button id="botao-sair-partida" class="botao-acao botao-secundario" type="button">🚪 Sair da partida</button>
+          <button id="botao-encerrar-sala" class="botao-acao botao-perigo" type="button" hidden>⛔ Encerrar sala para todos</button>
+        </div>
+      </div>
+    </dialog>
   </div>
 
   <!-- ===== TELA 4: RESULTADO FINAL ===== -->

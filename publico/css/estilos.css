@@ -2058,3 +2058,228 @@ button {
   border-color: rgba(0, 255, 136, 0.5);
   box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
 }
+
+/* =========================================================================
+   10. MENU DA PARTIDA (MULTIPLAYER), CAVEIRA E DONO DA SALA
+   ======================================================================= */
+
+/* Botao de menu dentro do HUD, antes do tempo */
+.hud-multi .hud-esquerda {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.botao-menu-partida {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-superficie);
+  color: var(--cor-texto-destaque);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.botao-menu-partida:hover {
+  background: var(--cor-superficie-hover);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.2);
+}
+
+.botao-menu-partida:focus-visible,
+.dialogo-menu-partida button:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+/* Dialogo modal (elemento <dialog> nativo: prende o foco e fecha com Esc) */
+.dialogo-menu-partida {
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--raio-borda);
+  background: var(--cor-fundo-claro);
+  color: var(--cor-texto);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y; /* o jogo bloqueia gestos no body; o menu precisa rolar */
+}
+
+.dialogo-menu-partida::backdrop {
+  background: rgba(10, 11, 30, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.menu-partida-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(18px, 5vw, 28px);
+  padding-bottom: max(clamp(18px, 5vw, 28px), env(safe-area-inset-bottom));
+}
+
+.menu-partida-titulo {
+  font-family: var(--fonte-titulo);
+  font-size: 1.2rem;
+  color: var(--cor-texto-destaque);
+  text-align: center;
+}
+
+.menu-partida-aviso {
+  font-size: 0.85rem;
+  color: var(--cor-texto-secundario);
+  text-align: center;
+}
+
+.menu-partida-subtitulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--cor-texto-secundario);
+  margin-bottom: 8px;
+}
+
+.menu-partida-jogadores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-partida-jogador {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 12px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+}
+
+.menu-partida-nome {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-partida-vazio {
+  font-size: 0.85rem;
+  color: var(--cor-texto-secundario);
+  text-align: center;
+  padding: 8px;
+}
+
+.botao-expulsar {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 68, 68, 0.45);
+  border-radius: var(--raio-borda-sm);
+  background: rgba(255, 68, 68, 0.12);
+  color: #ff8080;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.botao-expulsar:hover {
+  background: rgba(255, 68, 68, 0.25);
+}
+
+.botao-expulsar:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.menu-partida-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-partida-acoes .botao-acao {
+  width: 100%;
+  min-height: 48px;
+}
+
+.botao-perigo {
+  background: rgba(255, 68, 68, 0.15);
+  color: #ff8080;
+  border: 1px solid rgba(255, 68, 68, 0.5);
+}
+
+.botao-perigo:hover {
+  background: rgba(255, 68, 68, 0.28);
+}
+
+/* Segundo toque pendente numa acao destrutiva */
+.botao-acao.confirmando,
+.botao-expulsar.confirmando {
+  background: #ff4444;
+  border-color: #ff4444;
+  color: #fff;
+}
+
+.menu-partida-erro {
+  font-size: 0.85rem;
+  color: #ff8080;
+  text-align: center;
+}
+
+/* Efeito ativo da caveira no HUD */
+.efeito-caveira {
+  background: rgba(176, 77, 255, 0.2);
+  border: 1px solid rgba(176, 77, 255, 0.5);
+  color: #d9a6ff;
+}
+
+/* Marcador do dono na sala de espera */
+.tag-dono {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  vertical-align: middle;
+  background: rgba(255, 170, 0, 0.18);
+  border: 1px solid rgba(255, 170, 0, 0.45);
+  color: var(--cor-alerta);
+}
+
+/* HUD compacto no toque: botao continua com area de toque confortavel */
+@media (hover: none) and (pointer: coarse) {
+  .hud-multi .hud-esquerda {
+    gap: 8px;
+  }
+
+  .botao-menu-partida {
+    width: 40px;
+    height: 40px;
+    font-size: 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .efeito-caveira {
+    animation: none;
+  }
+}

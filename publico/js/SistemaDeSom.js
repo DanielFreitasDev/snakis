@@ -587,6 +587,17 @@ class SistemaDeSom {
     ]);
   }
 
+  /**
+   * Som ao comer a caveira: acorde grave e dissonante descendo (sinistro).
+   */
+  comerCaveira() {
+    this._tocarSequencia([
+      { freq: 311, tipo: 'sawtooth', duracao: 0.25, atraso: 0, vol: this.volume * 0.4 },
+      { freq: 220, tipo: 'sawtooth', duracao: 0.3, atraso: 0.12, vol: this.volume * 0.45 },
+      { freq: 147, tipo: 'square', duracao: 0.45, atraso: 0.24, vol: this.volume * 0.4 },
+    ]);
+  }
+
   // ---- Colisao e Morte ----
 
   /**
