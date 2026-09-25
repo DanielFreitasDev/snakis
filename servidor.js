@@ -436,6 +436,41 @@ io.on('connection', (socket) => {
   });
 
   /**
+   * Aplica a configuracao de comidas/pontos que o dono salvou no navegador.
+   * So o dono pode, para um jogador que entra nao sobrescrever a sala.
+   */
+  registrar('aplicar-config-sala', (config, callback) => {
+    const responder = callbackSeguro(callback);
+    const codigo = jogadorParaSala.get(socket.id);
+    if (!codigo) return responder({ sucesso: false });
+
+    const sala = salas.get(codigo);
+    if (!sala || sala.estado !== 'aguardando' || !sala.ehDono(socket.id)) {
+      return responder({ sucesso: false });
+    }
+
+    sala.aplicarConfig(config);
+    responder({ sucesso: true });
+    io.to(codigo).emit('sala-atualizada', sala.obterInfoSala());
+  });
+
+  /**
+   * Volta pontos, chances e pontos por eliminacao ao padrao.
+   */
+  registrar('restaurar-config-sala', (callback) => {
+    const responder = callbackSeguro(callback);
+    const codigo = jogadorParaSala.get(socket.id);
+    if (!codigo) return responder({ sucesso: false });
+
+    const sala = salas.get(codigo);
+    if (!sala || sala.estado !== 'aguardando') return responder({ sucesso: false });
+
+    sala.restaurarConfigPadrao();
+    responder({ sucesso: true });
+    io.to(codigo).emit('sala-atualizada', sala.obterInfoSala());
+  });
+
+  /**
    * Altera quantos pontos vale eliminar outro jogador.
    */
   registrar('alterar-pontos-eliminacao', (valor, callback) => {

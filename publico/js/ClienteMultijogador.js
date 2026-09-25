@@ -34,6 +34,9 @@ function escaparHtml(texto) {
   }[c]));
 }
 
+/** Chave do localStorage com a ultima configuracao de comidas/pontos da sala */
+const CHAVE_CONFIG_SALA = 'snake_config_sala';
+
 class ClienteMultijogador {
   /**
    * Inicializa o cliente multiplayer e conecta ao servidor.
@@ -73,6 +76,9 @@ class ClienteMultijogador {
     this.elBotoesTempo = document.querySelectorAll('#opcoes-tempo .botao-opcao');
     this.elListaConfigComidas = document.getElementById('lista-config-comidas');
     this.elPontosEliminacao = document.getElementById('pontos-eliminacao');
+    this.elBotaoRestaurarConfig = document.getElementById('botao-restaurar-config');
+    /** @type {boolean} Esperando o servidor confirmar uma edicao nossa da config */
+    this.aguardandoConfigSala = false;
     this._montarConfigComidas();
 
     // Jogo
@@ -540,6 +546,7 @@ class ClienteMultijogador {
         this.estouPronto = false;
         this._mostrarTela('sala');
         this.elSalaCodigo.textContent = resposta.codigo;
+        this._aplicarConfigSalva();
       } else {
         this._exibirErro(resposta.erro || 'Erro ao criar sala.');
       }
@@ -595,15 +602,16 @@ class ClienteMultijogador {
 
   /**
    * Cria uma linha por tipo de comida na configuracao da sala:
-   * checkbox "da ponto" + quantos pontos + quantas chances de aparecer.
+   * checkbox "da ponto" + quantos pontos + chance (%) de aparecer.
+   * A chance da maca eh so leitura: ela fica com o que sobra ate 100%.
    * @private
    */
   _montarConfigComidas() {
     const maxPontos = CONSTANTES.PONTUACAO.MAXIMO_CONFIGURAVEL;
-    const maxChances = CONSTANTES.MULTI.MAXIMO_CHANCES;
     let html = '';
     for (const comida of Object.values(CONSTANTES.TIPOS_COMIDA)) {
       const id = `comida-${comida.tipo}`;
+      const ehResto = comida.tipo === 'normal';
       html += `
         <li class="linha-comida" data-tipo="${comida.tipo}">
           <label class="comida-nome" title="Desmarque para não dar ponto">
@@ -620,10 +628,11 @@ class ClienteMultijogador {
                      aria-label="Pontos da comida ${comida.descricao}">
             </label>
             <label class="campo-mini">
-              <span class="campo-mini-rotulo">Chance <output class="comida-percentual"></output></span>
+              <span class="campo-mini-rotulo">${ehResto ? 'Resto %' : 'Chance %'}</span>
               <input type="number" class="comida-chances" id="${id}-chances"
-                     inputmode="numeric" min="0" max="${maxChances}" step="1" enterkeyhint="done"
-                     aria-label="Chances de aparecer da comida ${comida.descricao}">
+                     inputmode="numeric" min="0" max="100" step="1" enterkeyhint="done"
+                     ${ehResto ? 'readonly tabindex="-1" title="A Maçã fica com o que sobra para somar 100%"' : ''}
+                     aria-label="Chance em porcentagem de aparecer ${comida.descricao}${ehResto ? ' (o que sobra)' : ''}">
             </label>
           </div>
         </li>
@@ -636,14 +645,19 @@ class ClienteMultijogador {
   /**
    * Reflete na tela a configuracao de comidas e eliminacao vinda do
    * servidor. O campo em que o jogador esta digitando nao eh sobrescrito,
-   * para nao "roubar" a edicao.
+   * para nao "roubar" a edicao — exceto na resposta a uma edicao nossa,
+   * quando o servidor pode ter corrigido o valor (ex: chance acima do limite).
+   * Nesse caso a configuracao tambem eh salva no navegador.
    * @param {object} infoSala - Informacoes da sala vindas do servidor.
    * @private
    */
   _sincronizarConfigComidas(infoSala) {
+    const respostaDaMinhaEdicao = this.aguardandoConfigSala;
+    this.aguardandoConfigSala = false;
+
     const emFoco = document.activeElement;
     const definirValor = (input, valor) => {
-      if (input !== emFoco) input.value = valor;
+      if (respostaDaMinhaEdicao || input !== emFoco) input.value = valor;
     };
 
     if (infoSala.configComidas) {
@@ -655,29 +669,51 @@ class ClienteMultijogador {
         campoPontos.disabled = !config.daPonto;
         definirValor(campoPontos, config.pontos);
         definirValor(linha.querySelector('.comida-chances'), config.chances);
+        linha.classList.toggle('comida-nao-aparece', config.chances === 0);
       }
-      this._atualizarPercentuais(infoSala.configComidas);
     }
 
     if (typeof infoSala.pontosEliminacao === 'number') {
       definirValor(this.elPontosEliminacao, infoSala.pontosEliminacao);
     }
+
+    if (respostaDaMinhaEdicao && infoSala.configComidas) {
+      this._salvarConfigSala(infoSala);
+    }
   }
 
   /**
-   * Mostra ao lado de "Chance" a porcentagem aproximada de cada comida,
-   * para ficar claro o efeito das chances (fichas do sorteio).
-   * @param {object} configComidas - Configuracao das comidas vinda do servidor.
+   * Guarda no navegador a configuracao de comidas/pontos, para a proxima
+   * sala criada ja comecar com ela. Falha de armazenamento (aba anonima,
+   * cota cheia) so faz perder a lembranca, nunca quebra o jogo.
+   * @param {object} infoSala - Informacoes da sala vindas do servidor.
    * @private
    */
-  _atualizarPercentuais(configComidas) {
-    const total = Object.values(configComidas).reduce((soma, c) => soma + c.chances, 0);
-    for (const linha of this.elListaConfigComidas.children) {
-      const config = configComidas[linha.dataset.tipo];
-      const saida = linha.querySelector('.comida-percentual');
-      if (!config || !saida) continue;
-      saida.textContent = total > 0 ? `${Math.round((config.chances / total) * 100)}%` : '';
-      linha.classList.toggle('comida-nao-aparece', config.chances === 0);
+  _salvarConfigSala(infoSala) {
+    try {
+      localStorage.setItem(CHAVE_CONFIG_SALA, JSON.stringify({
+        configComidas: infoSala.configComidas,
+        pontosEliminacao: infoSala.pontosEliminacao,
+      }));
+    } catch (erro) {
+      console.warn('[Config] Nao foi possivel salvar a configuracao da sala:', erro.message);
+    }
+  }
+
+  /**
+   * Envia ao servidor a configuracao salva no navegador (se houver).
+   * Chamado ao criar uma sala, quando somos o dono.
+   * @private
+   */
+  _aplicarConfigSalva() {
+    let config = null;
+    try {
+      config = JSON.parse(localStorage.getItem(CHAVE_CONFIG_SALA) || 'null');
+    } catch (erro) {
+      config = null;
+    }
+    if (config && typeof config === 'object') {
+      this.socket.emit('aplicar-config-sala', config, () => {});
     }
   }
 
@@ -701,6 +737,7 @@ class ClienteMultijogador {
     const daPonto = linha.querySelector('.comida-da-ponto').checked;
     const campoPontos = linha.querySelector('.comida-pontos');
     campoPontos.disabled = !daPonto;
+    this.aguardandoConfigSala = true;
     this.socket.emit('alterar-config-comida', linha.dataset.tipo, {
       daPonto,
       pontos: this._lerNumero(campoPontos),
@@ -1498,7 +1535,14 @@ class ClienteMultijogador {
 
     // Sala: Pontos por eliminacao
     this.elPontosEliminacao.addEventListener('change', () => {
+      this.aguardandoConfigSala = true;
       this.socket.emit('alterar-pontos-eliminacao', this._lerNumero(this.elPontosEliminacao), () => {});
+    });
+
+    // Sala: Restaurar pontos e chances padrao (e salvar o padrao no navegador)
+    this.elBotaoRestaurarConfig.addEventListener('click', () => {
+      this.aguardandoConfigSala = true;
+      this.socket.emit('restaurar-config-sala', () => {});
     });
 
     // Sala: Marcar pronto

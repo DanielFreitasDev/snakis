@@ -61,24 +61,15 @@ class SalaDeJogo {
      * Configuracao de cada comida, indexada pelo tipo ('normal', 'dourada'...):
      * - daPonto: false faz a comida nao dar ponto (os `pontos` ficam guardados
      *   para voltar ao que era quando reativar);
-     * - chances: "fichas" no sorteio de qual comida nasce. Com 20 chances a
-     *   comida aparece o dobro de uma com 10; com 0 ela nao aparece.
+     * - chances: % de cada comida nova ser deste tipo. A maca ('normal') fica
+     *   com o que sobra, entao a soma eh sempre 100.
      */
     this.configComidas = {};
-    for (const dadosTipo of Object.values(CONSTANTES.TIPOS_COMIDA)) {
-      // A caveira tem probabilidade 0 no solo; no multiplayer usa CHANCE_CAVEIRA
-      const probabilidade = dadosTipo.tipo === 'caveira'
-        ? CONSTANTES.MULTI.CHANCE_CAVEIRA
-        : dadosTipo.probabilidade;
-      this.configComidas[dadosTipo.tipo] = {
-        daPonto: true,
-        pontos: dadosTipo.pontos,
-        chances: Math.round(probabilidade * 100),
-      };
-    }
 
     /** @type {number} Pontos ganhos ao eliminar outro jogador */
     this.pontosEliminacao = CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+
+    this.restaurarConfigPadrao();
 
     /** @type {number} Tempo restante da partida em segundos */
     this.tempoRestante = this.tempoPartida;
@@ -562,9 +553,10 @@ class SalaDeJogo {
   }
 
   /**
-   * Altera a configuracao de uma comida: se da ponto, quanto, e quantas
-   * chances tem de aparecer. Campos ausentes ou invalidos (ex: campo vazio)
-   * mantem o valor anterior.
+   * Altera a configuracao de uma comida: se da ponto, quanto, e a chance
+   * (em %) de aparecer. Campos ausentes ou invalidos (ex: campo vazio)
+   * mantem o valor anterior. A chance da maca nao eh editavel: ela fica
+   * com o que sobra; as outras sao limitadas para a soma nao passar de 100.
    * @param {string} tipo - Tipo da comida ('normal', 'dourada'...).
    * @param {{daPonto?: boolean, pontos?: number, chances?: number}} dados
    */
@@ -579,8 +571,74 @@ class SalaDeJogo {
     const pontos = this._normalizarInteiro(dados.pontos, CONSTANTES.PONTUACAO.MAXIMO_CONFIGURAVEL);
     if (pontos !== null) config.pontos = pontos;
 
-    const chances = this._normalizarInteiro(dados.chances, CONSTANTES.MULTI.MAXIMO_CHANCES);
-    if (chances !== null) config.chances = chances;
+    if (tipo !== 'normal') {
+      // Espaco disponivel = 100 - soma das outras comidas especiais
+      let usadoPelasOutras = 0;
+      for (const [outroTipo, outra] of Object.entries(this.configComidas)) {
+        if (outroTipo !== tipo && outroTipo !== 'normal') usadoPelasOutras += outra.chances;
+      }
+      const chances = this._normalizarInteiro(dados.chances, 100 - usadoPelasOutras);
+      if (chances !== null) config.chances = chances;
+      this._recalcularChanceMaca();
+    }
+  }
+
+  /**
+   * Aplica de uma vez uma configuracao completa (ex: a que o dono salvou
+   * no navegador). Valores invalidos sao ignorados, como nas edicoes avulsas.
+   * @param {{configComidas?: object, pontosEliminacao?: number}} config
+   */
+  aplicarConfig(config) {
+    if (!config || typeof config !== 'object') return;
+
+    const comidas = config.configComidas;
+    if (comidas && typeof comidas === 'object') {
+      // Zerar as chances antes, para o limite de 100% nao depender da ordem
+      for (const [tipo, atual] of Object.entries(this.configComidas)) {
+        if (tipo !== 'normal') atual.chances = 0;
+      }
+      for (const tipo of Object.keys(this.configComidas)) {
+        if (Object.prototype.hasOwnProperty.call(comidas, tipo)) {
+          this.alterarConfigComida(tipo, comidas[tipo]);
+        }
+      }
+      // Tipo ausente na config salva volta para a chance padrao (se couber)
+      for (const tipo of Object.keys(CONSTANTES.MULTI.CHANCES_PADRAO)) {
+        if (!Object.prototype.hasOwnProperty.call(comidas, tipo)) {
+          this.alterarConfigComida(tipo, { chances: CONSTANTES.MULTI.CHANCES_PADRAO[tipo] });
+        }
+      }
+      this._recalcularChanceMaca();
+    }
+
+    this.alterarPontosEliminacao(config.pontosEliminacao);
+  }
+
+  /**
+   * Volta pontos, chances e pontos por eliminacao aos valores padrao.
+   */
+  restaurarConfigPadrao() {
+    for (const dadosTipo of Object.values(CONSTANTES.TIPOS_COMIDA)) {
+      this.configComidas[dadosTipo.tipo] = {
+        daPonto: true,
+        pontos: dadosTipo.pontos,
+        chances: CONSTANTES.MULTI.CHANCES_PADRAO[dadosTipo.tipo] || 0,
+      };
+    }
+    this._recalcularChanceMaca();
+    this.pontosEliminacao = CONSTANTES.PONTUACAO.ELIMINAR_JOGADOR;
+  }
+
+  /**
+   * A maca fica com o que sobra das outras comidas, para somar 100%.
+   * @private
+   */
+  _recalcularChanceMaca() {
+    let soma = 0;
+    for (const [tipo, config] of Object.entries(this.configComidas)) {
+      if (tipo !== 'normal') soma += config.chances;
+    }
+    this.configComidas.normal.chances = Math.max(0, 100 - soma);
   }
 
   /**
@@ -1486,8 +1544,8 @@ class SalaDeJogo {
 
   /**
    * Sorteia um tipo de comida usando roleta ponderada (weighted random):
-   * cada comida entra com as `chances` configuradas na sala, entao quem
-   * tem mais chances aparece mais vezes.
+   * cada comida entra com a chance (%) configurada na sala. Se a caveira
+   * ja estiver no mapa, ela sai do sorteio e as outras dividem o espaco dela.
    * @returns {string} Chave do tipo de comida em CONSTANTES.TIPOS_COMIDA.
    * @private
    */
@@ -1511,7 +1569,7 @@ class SalaDeJogo {
       if (sorteio < 0) return chave;
     }
 
-    // Fallback (ex: todas as chances zeradas): comida normal
+    // Fallback (ex: so a caveira tinha chance e ela ja esta no mapa): maca
     return 'NORMAL';
   }
 

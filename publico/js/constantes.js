@@ -98,7 +98,7 @@ const CONSTANTES = {
     /**
      * Caveira (so no multiplayer): por alguns segundos, qualquer cobra
      * que encostar em quem comeu morre na hora. Probabilidade 0 aqui para
-     * nao aparecer no solo; no multiplayer a chance padrao vem de MULTI.CHANCE_CAVEIRA.
+     * nao aparecer no solo; no multiplayer a chance padrao vem de MULTI.CHANCES_PADRAO.
      */
     CAVEIRA: {
       tipo: 'caveira',
@@ -156,8 +156,12 @@ const CONSTANTES = {
     TEMPO_INVULNERAVEL: 3000,   // ms de invulnerabilidade apos respawn
     TEMPO_PARTIDA: 180,         // segundos (3 minutos por partida)
     TEMPO_RECONEXAO: 60,        // segundos que um jogador caido pode voltar a partida
-    CHANCE_CAVEIRA: 0.06,       // Chance padrao da caveira (max. 1 no mapa); a sala pode mudar
-    MAXIMO_CHANCES: 100,        // Teto das "chances" de aparecer configuraveis por comida
+    /*
+     * Chance padrao (em %) de cada comida nova ser de um tipo. A sala pode
+     * mudar; a maca ('normal') fica sempre com o que sobra para somar 100%.
+     * Caveira: no maximo uma no mapa por vez.
+     */
+    CHANCES_PADRAO: { velocidade: 19, dourada: 14, vida: 9, escudo: 9, caveira: 6 },
 
     /*
      * Velocidade das cobras em celulas por segundo. A cada encolhimento

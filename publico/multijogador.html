@@ -128,8 +128,9 @@
             <span class="config-comidas-dica">pontos e chance de aparecer</span>
           </summary>
           <p class="config-comidas-ajuda">
-            Desmarque para a comida não dar ponto. <strong>Chance</strong> é quantas
-            fichas ela tem no sorteio: mais chances, aparece mais; 0, não aparece.
+            Desmarque para a comida não dar ponto. <strong>Chance</strong> é a % de cada
+            comida nova ser daquele tipo (0 = não aparece); a Maçã fica com o que
+            sobra para somar 100%. Suas mudanças ficam salvas para as próximas salas.
           </p>
           <ul id="lista-config-comidas" class="lista-comidas"></ul>
           <div class="linha-eliminacao">
@@ -145,6 +146,9 @@
               </label>
             </div>
           </div>
+          <button id="botao-restaurar-config" class="botao-restaurar-config" type="button">
+            Restaurar padrão
+          </button>
         </details>
       </div>
 

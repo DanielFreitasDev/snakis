@@ -1210,10 +1210,6 @@ button {
   white-space: nowrap;
 }
 
-.comida-percentual {
-  color: var(--cor-primaria);
-}
-
 .campo-mini input {
   width: 100%;
   min-height: 36px;
@@ -1233,6 +1229,35 @@ button {
   cursor: not-allowed;
 }
 
+/* Chance da maca: calculada (o que sobra), so leitura */
+.campo-mini input[readonly] {
+  background: transparent;
+  border-style: dashed;
+  color: var(--cor-primaria);
+  cursor: default;
+}
+
+.botao-restaurar-config {
+  display: block;
+  margin: 10px auto 2px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.botao-restaurar-config:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cor-texto);
+}
+
 /* Comida que nao da ponto: nome riscado (os pontos ficam guardados) */
 .linha-comida:has(.comida-da-ponto:not(:checked)) .comida-nome {
   color: var(--cor-texto-secundario);
@@ -1246,6 +1271,7 @@ button {
 }
 
 .config-comidas-titulo:focus-visible,
+.botao-restaurar-config:focus-visible,
 .comida-da-ponto:focus-visible,
 .campo-mini input:focus-visible {
   outline: 2px solid var(--cor-primaria);
